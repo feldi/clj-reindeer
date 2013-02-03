@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- example web.xml for your project named "xxx" -->
+
+<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+  <display-name>xxx</display-name>
+  <context-param>
+    <description>Vaadin production mode</description>
+    <param-name>productionMode</param-name>
+    <param-value>false</param-value>
+  </context-param>
+  <servlet>
+    <servlet-name>xxx-servlet</servlet-name>
+    <servlet-class>clj.reindeer.ReindeerServlet</servlet-class>
+    <init-param>
+			<description>clojure function to build vaadin application</description>
+			<param-name>buildfn</param-name>
+			<param-value>xxx.app/launch-app</param-value>
+	</init-param>
+    <init-param>
+			<description>Application widgetset</description>
+			<param-name>widgetset</param-name>
+			<param-value>xxx.widgetset.XxxWidgetset</param-value>
+	</init-param>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>xxx-servlet</servlet-name>
+    <url-pattern>/*</url-pattern>
+  </servlet-mapping>
+</web-app>
