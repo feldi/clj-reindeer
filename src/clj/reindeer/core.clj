@@ -35,10 +35,11 @@
                            AbstractComponent AbstractComponentContainer 
                            Window Window$CloseListener Window$Notification
                            Label Button Button$ClickListener Button$ClickEvent
+                           NativeButton OptionGroup
                            HorizontalLayout VerticalLayout
                            AbstractField TextField TextArea PasswordField RichTextArea
                            DateField InlineDateField PopupDateField
-                           Link CheckBox
+                           Link Embedded CheckBox
                            ]
             [com.vaadin.terminal Terminal Terminal$ErrorEvent 
              Resource ExternalResource ClassResource ThemeResource]
@@ -434,6 +435,14 @@
     (apply-options (Button. "") args))
 )
 
+(defn ^NativeButton native-button
+  [& args ]
+   (case (count args)
+    0 (button :caption "")
+    1 (button :caption (first args))
+    (apply-options (NativeButton. "") args))
+)
+
 (defn ^HorizontalLayout h-l
   [& {:keys [items spacing] } ]
    (let [h (HorizontalLayout.)]
@@ -611,8 +620,18 @@
   [^String res & args]
   (case (count args)
     0 (link res :caption "")
-    1 (link :caption (first args))
+    1 (link res :caption (first args))
     (apply-options (Link. nil (ExternalResource. res))
+                   args)))
+
+(option-provider Embedded link-options)
+
+(defn ^Embedded embedded
+  [^Resource res & args]
+  (case (count args)
+    0 (embedded res :caption "")
+    1 (embedded res :caption (first args))
+    (apply-options (Embedded. nil res)
                    args)))
 
 ;*******************************************************************************
@@ -729,4 +748,43 @@
   "Returns the height of the given widget."
   [w]
   (.getHeight (to-widget w)))
+
+(defn add-style-name
+  "Adds a named css style to a component." 
+  [^Component c 
+   ^String n]
+  (.addStyleName c n)
+)
+
+(defn remove-style-name
+  "Removes a named css style from a component." 
+  [^Component c 
+   ^String n]
+  (.removeStyleName c n)
+)
+
+(defn ^OptionGroup option-group
+  "Gruped radio buttons." 
+  [& {:keys [caption items ] } ]
+   (let [^OptionGroup og (OptionGroup. )]
+     (when caption (.setCaption og caption))
+     (doseq [item items] 
+       (.addItem og item))
+     og))
+
+(defn ^OptionGroup option-group-multi
+  "Grouped check boxes with multiple selections." 
+  [& {:keys [caption items ] } ]
+   (let [^OptionGroup og (OptionGroup. )]
+     (when caption (.setCaption og caption))
+     (.setMultiSelect og true) 
+     (doseq [item items] 
+       (.addItem og item))
+     og))
+
+;; aliases
+(def radio-buttons option-group)
+(def check-boxes option-group-multi)
+
+
 
