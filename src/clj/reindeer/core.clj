@@ -32,11 +32,13 @@
             [com.vaadin Application Application$UserChangeListener Application$UserChangeEvent]
 	          [com.vaadin.ui AbstractOrderedLayout 
                            Component Component$Listener
+                           ComponentContainer
                            AbstractComponent AbstractComponentContainer 
-                           Window Window$CloseListener Window$Notification
+                           Panel Window Window$CloseListener Window$Notification
                            Label Button Button$ClickListener Button$ClickEvent
                            NativeButton OptionGroup
-                           HorizontalLayout VerticalLayout
+                           Alignment
+                           AbstractOrderedLayout HorizontalLayout VerticalLayout
                            AbstractField TextField TextArea PasswordField RichTextArea
                            DateField InlineDateField PopupDateField
                            Link Embedded CheckBox
@@ -241,6 +243,11 @@
    ratio]
   (.setExpandRatio layout c (float ratio)))
  
+(defn set-content!
+  "Set content of a panel (window)."
+  [^Panel p ^ComponentContainer c]
+  (.setContent p c))
+
 ;; Resource handling
 
 (defn ^ThemeResource theme-res 
@@ -444,18 +451,20 @@
 )
 
 (defn ^HorizontalLayout h-l
-  [& {:keys [items spacing] } ]
+  [& {:keys [items spacing style-name] } ]
    (let [h (HorizontalLayout.)]
      (when spacing (.setSpacing h spacing))
+     (when style-name (.addStyleName h style-name))
      (doseq [item items] 
        (add! h item))
      h)
 )
 
 (defn ^VerticalLayout v-l
-  [& {:keys [items spacing] } ]
+  [& {:keys [items spacing style-name] } ]
    (let [v (VerticalLayout.)]
      (when spacing (.setSpacing v spacing))
+     (when style-name (.addStyleName v style-name))
      (doseq [item items] 
        (add! v item)
     )
@@ -634,6 +643,14 @@
     (apply-options (Embedded. nil res)
                    args)))
 
+(defn ^Embedded embedded-theme-res
+  [^String res & args]
+  (apply embedded (theme-res res) args))
+
+(defn ^Embedded embedded-class-res
+  [^String res & args]
+  (apply embedded (class-res res) args))
+
 ;*******************************************************************************
 ; Widget configuration stuff
 
@@ -786,5 +803,7 @@
 (def radio-buttons option-group)
 (def check-boxes option-group-multi)
 
-
+(defn set-alignment!
+  [^AbstractOrderedLayout l ^Component c ^Alignment a]
+  (.setComponentAlignment l c a ))
 

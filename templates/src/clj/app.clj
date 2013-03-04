@@ -47,7 +47,7 @@
   "This is the 'main entry point' to the Vaadin application.
    It returns an instance of class com.vaadin.Application."
   []
-  (build-app :theme "reindeer" 
+  (build-app :main-theme "reindeer" 
              :init-fn init-app
              :user-changed-fn user-changed
              :on-request-start-fn on-request-start
