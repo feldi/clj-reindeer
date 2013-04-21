@@ -666,11 +666,11 @@
     (config* [target name]  (get-option-value target name))
     (config!* [target args] (apply-options target args))
 
-  Window
-    (config* [target name]  (get-option-value target name))
-    (config!* [target args] (apply-options target args))
+ ;; Window is an AbstractComponent!
+ ;;   (config* [target name]  (get-option-value target name))
+ ;;   (config!* [target args] (apply-options target args))
     
-   ;; todo: more?
+ ;; todo: more?
 )
 
 (defn set-text!
