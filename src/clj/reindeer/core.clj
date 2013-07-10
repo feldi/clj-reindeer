@@ -10,7 +10,7 @@
 
 (ns 
   ^{:author "Peter Feldtmann"
-    :doc "A Clojure Vaadin Bridge.
+    :doc "A Clojure Vaadin bridge.
           This is still work in progress."}
   clj.reindeer.core
   (:use [i18n.core :only [i18n-key? i18n]]
