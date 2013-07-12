@@ -12,8 +12,7 @@
   ^{:author "Peter Feldtmann"
     :doc "Reindeer utility functions"}
   clj.reindeer.util
-  (:require clojure.string 
-            [j18n.core :as j18n])
+  (:require clojure.string)
   (:import [java.net URL URI MalformedURLException URISyntaxException]
            [javax.servlet ServletContext])
 )
@@ -180,11 +179,16 @@
   [v]
   (and (keyword? v) (namespace v)))
 
+;(defn resource
+;  [message]
+;  (if (resource-key? message)
+;    (j18n/resource message)
+;    (str message)))
+
+; TODO
 (defn resource
   [message]
-  (if (resource-key? message)
-    (j18n/resource message)
-    (str message)))
+   (str message))
 
 (defn ^Integer to-mnemonic-keycode
   "Convert a character to integer to a mnemonic keycode. In the case of char
