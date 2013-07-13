@@ -6,10 +6,10 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.5.1"] 
                  [com.vaadin/vaadin "6.8.4"]
-               ;;;  [j18n "1.0.1"]
+                 [org.clojure/tools.nrepl "0.2.3"]
 				 ]
   :profiles {:dev 
              {:dependencies
-              [[javax.servlet/servlet-api "2.5"]]}}
+              [[javax.servlet/javax.servlet-api "3.1.0"]]}}
   :aot [clj.reindeer.ReindeerServlet]
 )

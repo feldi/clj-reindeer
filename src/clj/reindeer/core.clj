@@ -26,6 +26,7 @@
                                       get-option-value
                                       options-for-class defwidget]]
           [clj.reindeer.to-widget :only [ToWidget to-widget*]]
+          [clojure.tools.nrepl.server :only (start-server stop-server)]
          )
    (:import [java.net URL] 
             [javax.servlet.http HttpServletRequest HttpServletResponse]
@@ -62,6 +63,15 @@
 (declare add!)
 
 (def vaadin-app (atom nil))
+
+; start up embedded nREPL server
+(defonce reindeer-nrepl-server (start-server :port 7889))
+
+; end nREPL server
+(defn stop-nrepl 
+  []
+  (stop-server reindeer-nrepl-server))
+
 
 (defn ^Application get-app
   []
