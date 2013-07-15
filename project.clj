@@ -12,6 +12,8 @@
 				 ]
   :profiles {:dev 
              {:dependencies
-              [[javax.servlet/javax.servlet-api "3.1.0"]]}}
+              [[javax.servlet/javax.servlet-api "3.1.0"]
+                [midje "1.5.1"]
+               ]}}
   :aot [clj.reindeer.ReindeerServlet clj.reindeer.ReindeerUI]
 )
