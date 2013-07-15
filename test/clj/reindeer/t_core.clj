@@ -17,7 +17,13 @@
     (let [p (VerticalLayout.)
           b (Button.)]
       (add! p b) => irrelevant
-      (.getParent b) => p)))
+      (.getParent b) => p))
+  (fact "it stores the expand ratio of a subcomponent"
+    (let [p (VerticalLayout.)
+          b (Button.)]
+      (add! p b) => irrelevant
+      (set-expand-ratio! p b 0.5) => irrelevant
+      (.getExpandRatio p b) => (roughly 0.5))))
 
 (facts "about labels"
   (fact "it has the right caption"
