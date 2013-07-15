@@ -12,20 +12,38 @@
   ^{:doc "Generic servlet for the clojure vaadin bridge."
     :author "Peter Feldtmann"}
   clj.reindeer.ReindeerServlet
-  (:use [clj.reindeer.util])
   (:gen-class
-   :extends com.vaadin.terminal.gwt.server.AbstractApplicationServlet))
+   :extends com.vaadin.server.VaadinServlet
+   ))
 
-(defn -getApplicationClass 
-  [_] 
-  (class com.vaadin.Application))
+(defn- get-theme-name 
+  "Helper: gets the theme name from 'web.xml' ."
+  [session]
+  (-> session .getConfiguration 
+    (.getApplicationOrSystemProperty "themeName" "reindeer"))) ;; reindeer is default theme
 
-(defn -getNewApplication
-  [this _] 
-  (println "Building new Vaadin application through Clojure..." )
-  (if-let [build-fn-name (.getApplicationProperty ^com.vaadin.Application this "buildfn")]
-    (if-let [build-fn (require-and-resolve build-fn-name)]
-       (build-fn)
-       (throw (Exception. (str "build function not resolvable: " build-fn-name))))
-    (throw (Exception. " no build function name defined: please set servlet init parameter 'buildfn'" )
-  )))
+(defn- create-ui-provider 
+  "Helper: creates an UIProvider with the ability to override the theme name."
+  [^com.vaadin.server.SessionInitEvent siEvent]
+   (proxy [com.vaadin.server.DefaultUIProvider] [] 
+        (getTheme 
+          [^com.vaadin.server.UICreateEvent crtEvent]
+          (get-theme-name (.getSession siEvent)))))
+
+(defn- create-session-init-listener
+  "Helper: creates a vaadin session init listener with the new ui provider."
+  []
+  (reify com.vaadin.server.SessionInitListener
+     (^void sessionInit
+            [this ^com.vaadin.server.SessionInitEvent siEvent]
+            (-> siEvent .getSession (.addUIProvider (create-ui-provider siEvent))))))
+
+
+
+(defn -servletInitialized
+  "Called automatically by Vaadin when the servlet is ready."
+  [this]
+  ; (println "ReindeerServlet: servletInitialized entered." )
+  (-> this .getService (.addSessionInitListener (create-session-init-listener)))
+  )
+

@@ -26,16 +26,17 @@
                                       get-option-value
                                       options-for-class defwidget]]
           [clj.reindeer.to-widget :only [ToWidget to-widget*]]
-          [clojure.tools.nrepl.server :only (start-server stop-server)]
+          [clojure.tools.nrepl.server :only [start-server stop-server]]
          )
    (:import [java.net URL] 
             [javax.servlet.http HttpServletRequest HttpServletResponse]
-            [com.vaadin Application Application$UserChangeListener Application$UserChangeEvent]
-	          [com.vaadin.ui AbstractOrderedLayout 
+          ;  [com.vaadin Application Application$UserChangeListener Application$UserChangeEvent]
+	          [com.vaadin.ui UI AbstractOrderedLayout 
                            Component Component$Listener
                            ComponentContainer
                            AbstractComponent AbstractComponentContainer 
-                           Panel Window Window$CloseListener Window$Notification
+                           Panel 
+                           Window Window$CloseListener ; Window$Notification
                            Label Button Button$ClickListener Button$ClickEvent
                            NativeButton OptionGroup
                            Alignment
@@ -43,11 +44,12 @@
                            AbstractField TextField TextArea PasswordField RichTextArea
                            DateField InlineDateField PopupDateField
                            Link Embedded CheckBox
+                           Notification Notification$Type
                            ]
-            [com.vaadin.terminal Terminal Terminal$ErrorEvent 
+            [com.vaadin.server ; Terminal Terminal$ErrorEvent 
              Resource ExternalResource ClassResource ThemeResource]
             [com.vaadin.event FieldEvents$TextChangeListener FieldEvents$TextChangeEvent]
-            [com.vaadin.terminal.gwt.server HttpServletRequestListener]
+          ;  [com.vaadin.terminal.gwt.server HttpServletRequestListener]
             [com.vaadin.data Property$ValueChangeListener]
    )
 )
@@ -73,13 +75,13 @@
   (stop-server reindeer-nrepl-server))
 
 
-(defn ^Application get-app
+(defn ^UI get-app
   []
   @vaadin-app
 )
 
-(defn defapplication
-  [& {:keys [main-theme
+(defn def-v7-application
+  [^UI ui & {:keys [main-theme
              init-fn
              close-fn
              user-changed-fn
@@ -90,117 +92,154 @@
              logout-url
              main-window
              app-windows] } ]
-  (proxy [Application
-          Application$UserChangeListener
-          HttpServletRequestListener] []
-    (init 
-      []
-      (reset! vaadin-app this) 
-      (when main-theme
-         (.setTheme ^Application this main-theme))
-      (when logout-url
-         (.setLogoutURL ^Application this logout-url))
-      (when error-handler
-         (.setErrorHandler ^Application this error-handler))
-      (when init-fn
-        (init-fn))
+ 
+   (println "enter def-v7-app ..." )
+      (reset! vaadin-app ui) 
+;      (when main-theme
+;         (.setTheme ^Application this main-theme))
       (when main-window
+        (println "set-content ui main window ..." + main-window )
+        (.setContent ui main-window) 
+        (println "setted-content ui main window " )
         )
       (when app-windows
         )
-     )
-    (close 
-      []
-      (when close-fn
-        (close-fn))
-        (proxy-super close))
-    (onRequestStart 
-      [^HttpServletRequest request,	^HttpServletResponse response]
-       (when on-request-start-fn
-        (on-request-start-fn request response)))
-    (onRequestEnd 
-      [^HttpServletRequest request,	^HttpServletResponse response] 
-        (when on-request-end-fn
-          (on-request-end-fn request response)))
-    (applicationUserChanged
-      [^Application$UserChangeEvent event]
-          (when user-changed-fn
-            (user-changed-fn event)))
-    (terminalError 
-      [^Terminal$ErrorEvent event]
-      (if terminal-error-fn
-        (terminal-error-fn event)
-        (proxy-super terminalError event)))
-    ))
-
-(defn close-application
-  []
-  (println "Closing Vaadin Application.")
-  (.close ^Application (get-app))
+      (when init-fn
+        (init-fn))
+      (println "exit def-v7-app ..." )
+;    (close 
+;      []
+;      (when close-fn
+;        (close-fn))
+;        (proxy-super close))
 )
+
+
+
+;(defn defapplication
+;  [& {:keys [main-theme
+;             init-fn
+;             close-fn
+;             user-changed-fn
+;             terminal-error-fn
+;             error-handler
+;             on-request-start-fn
+;             on-request-end-fn
+;             logout-url
+;             main-window
+;             app-windows] } ]
+;  (proxy [Application
+;          Application$UserChangeListener
+;          HttpServletRequestListener] []
+;    (init 
+;      []
+;      (reset! vaadin-app this) 
+;      (when main-theme
+;         (.setTheme ^Application this main-theme))
+;      (when logout-url
+;         (.setLogoutURL ^Application this logout-url))
+;      (when error-handler
+;         (.setErrorHandler ^Application this error-handler))
+;      (when init-fn
+;        (init-fn))
+;      (when main-window
+;        )
+;      (when app-windows
+;        )
+;     )
+;    (close 
+;      []
+;      (when close-fn
+;        (close-fn))
+;        (proxy-super close))
+;    (onRequestStart 
+;      [^HttpServletRequest request,	^HttpServletResponse response]
+;       (when on-request-start-fn
+;        (on-request-start-fn request response)))
+;    (onRequestEnd 
+;      [^HttpServletRequest request,	^HttpServletResponse response] 
+;        (when on-request-end-fn
+;          (on-request-end-fn request response)))
+;    (applicationUserChanged
+;      [^Application$UserChangeEvent event]
+;          (when user-changed-fn
+;            (user-changed-fn event)))
+;    (terminalError 
+;      [^Terminal$ErrorEvent event]
+;      (if terminal-error-fn
+;        (terminal-error-fn event)
+;        (proxy-super terminalError event)))
+;    ))
+;
+;(defn close-application
+;  []
+;  (println "Closing Vaadin Application.")
+;  (.close ^Application (get-app))
+;)
 
 (defn get-locale
   []
   (.getLocale (get-app)))
 
 
-(defn- set-app-close-listener!
-  [^Window win]
-  (.addListener win 
-    (reify Window$CloseListener
-	    (windowClose [this event] (close-application))))
-)
-
-(defn set-main-window!
-  [win] 
-  (.setMainWindow (get-app) win)
-  (set-app-close-listener! win)
-  win
-)
+;(defn- set-app-close-listener!
+;  [^Window win]
+;  (.addListener win 
+;    (reify Window$CloseListener
+;	    (windowClose [this event] (close-application))))
+;)
+;
+;(defn set-main-window!
+;  [win] 
+;  (.setMainWindow (get-app) win)
+;  (set-app-close-listener! win)
+;  win
+;)
+;
 
 (defn ^Window get-main-window 
   []
  (.. (get-app) getMainWindow)
 )
 
-(defn remove-main-window!
-  []
-  (when (get-main-window)
-    (.removeWindow (get-app) (get-main-window))))
+;(defn remove-main-window!
+;  []
+;  (when (get-main-window)
+;    (.removeWindow (get-app) (get-main-window))))
+;
+;(defn- set-win-close-listener!
+;  [^Window win func]
+;  (.addListener win
+;    (reify Window$CloseListener
+;	    (windowClose [this event]
+;        (func event)
+;      )))
+;)
 
-(defn- set-win-close-listener!
-  [^Window win func]
-  (.addListener win
-    (reify Window$CloseListener
-	    (windowClose [this event]
-        (func event)
-      )))
-)
-
-(defn ^Window app-window 
-  [& {:keys [title name theme height width position-x position-y 
-             close-listener items] } ] 
-  (let [win (Window. (or (i18n title) "TODO: set title"))]
-    (when name       (.setName      win name))
-    (when theme      (.setTheme     win theme))
-    (when height     (.setHeight    win ^String height))
-    (when width      (.setWidth     win ^String width))
-    (when position-x (.setPositionX win position-x))
-    (when position-y (.setPositionY win position-y))
-    (when close-listener (set-win-close-listener! win close-listener))
-	  (doseq [item items] 
-	    (add! win item)
-    )
-  win))
-
-(defmacro main-window
-  [& args]
-  `(set-main-window! (app-window ~@args))
-  )
-
-(defn remove-app-window!   
-  [^Window win]
-  (.removeWindow (get-app) win))
+;(defn ^Window app-window 
+;  [& {:keys [title name theme height width position-x position-y 
+;             close-listener items] } ] 
+;  (let [win (Window. (or (i18n title) "TODO: set title"))]
+;    (when name       (.setName      win name))
+;    (when theme      (.setTheme     win theme))
+;    (when height     (.setHeight    win ^String height))
+;    (when width      (.setWidth     win ^String width))
+;    (when position-x (.setPositionX win position-x))
+;    (when position-y (.setPositionY win position-y))
+;    (when close-listener (set-win-close-listener! win close-listener))
+;	  (doseq [item items] 
+;	    (add! win item)
+;    )
+;  win))
+;
+;(defmacro main-window
+;  [& args]
+;  `(set-main-window! (app-window ~@args))
+;  )
+;
+;(defn remove-app-window!   
+;  [^Window win]
+;  (.removeWindow (get-app) win))
 
 (defn ^Window sub-window
   [& {:keys [title closable? draggable? modal? resizable? resizeLazy? 
@@ -216,7 +255,7 @@
     (when width       (.setWidth       win ^String width))
     (when position-x  (.setPositionX   win position-x))
     (when position-y  (.setPositionY   win position-y))
-    (when close-listener (set-win-close-listener! win close-listener))
+   ; (when close-listener (set-win-close-listener! win close-listener))
 	  (doseq [item items] 
 	    (add! win item)
     )
@@ -575,57 +614,66 @@
 
 (defn alert
   [msg]
-  (.. (get-main-window) (showNotification (convert-text-value msg))))
+ ;; (.. (get-main-window) (showNotification (convert-text-value msg)))
+  (Notification/show "Alert"  (convert-text-value msg)
+                     Notification$Type/HUMANIZED_MESSAGE )
+  )
+
+;(defn show-notification
+;  "Generic show method."
+;  ([caption msg type]
+;    (show-notification (get-main-window) caption msg type))
+;  ([^Window win caption msg type]
+;    (.. win (showNotification (convert-text-value caption)
+;                              (convert-text-value msg)
+;                              type))))
 
 (defn show-notification
   "Generic show method."
-  ([caption msg type]
-    (show-notification (get-main-window) caption msg type))
-  ([^Window win caption msg type]
-    (.. win (showNotification (convert-text-value caption)
-                              (convert-text-value msg)
-                              type))))
+  [caption msg type]
+  (Notification/show caption msg type)
+    )
 
 (defn show
   "Shows humanized message."
   ([caption msg]
   (show-notification (get-main-window) caption msg
-                     Window$Notification/TYPE_HUMANIZED_MESSAGE))
+                     Notification$Type/HUMANIZED_MESSAGE))
   ([^Window win caption msg]
   (show-notification win caption msg
-                     Window$Notification/TYPE_HUMANIZED_MESSAGE)))
+                     Notification$Type/HUMANIZED_MESSAGE)))
 
 (defn show-warning
   "Shows warning message."
   ([caption msg]
   (show-notification caption msg
-         Window$Notification/TYPE_WARNING_MESSAGE))
+         Notification$Type/WARNING_MESSAGE))
   ([^Window win caption msg]
     (show-notification win caption msg
-         Window$Notification/TYPE_WARNING_MESSAGE)))
+         Notification$Type/WARNING_MESSAGE)))
 
 (defn show-error
   "Shows error message."
   ([caption msg]
     (show-notification caption msg
-                       Window$Notification/TYPE_ERROR_MESSAGE))
+                       Notification$Type/ERROR_MESSAGE))
   ([^Window win caption msg]
     (show-notification win caption msg
-                       Window$Notification/TYPE_ERROR_MESSAGE)))
+                       Notification$Type/ERROR_MESSAGE)))
 
 (defn show-tray
   "Shows message in system tray area."
   ([caption msg]
     (show-notification caption msg
-                       Window$Notification/TYPE_TRAY_NOTIFICATION))
+                       Notification$Type/TRAY_NOTIFICATION))
   ([^Window win caption msg]
     (show-notification win caption msg
-                       Window$Notification/TYPE_TRAY_NOTIFICATION)))
+                       Notification$Type/TRAY_NOTIFICATION)))
 
 ; TODO implement Window$Notification with options
 (defn create-notification
   [caption msg type]
-  (Window$Notification. caption msg type)
+  (Notification. caption msg type)
   )
 
 (def link-options
