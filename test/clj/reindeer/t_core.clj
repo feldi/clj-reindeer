@@ -3,7 +3,8 @@
         [midje.sweet])
   (:import [com.vaadin.ui
             VerticalLayout
-            Button]))
+            Button
+            Panel]))
 
 (def on-click-called (ref false))
 
@@ -23,7 +24,12 @@
           b (Button.)]
       (add! p b) => irrelevant
       (set-expand-ratio! p b 0.5) => irrelevant
-      (.getExpandRatio p b) => (roughly 0.5))))
+      (.getExpandRatio p b) => (roughly 0.5)))
+  (fact "it stores its content"
+    (let [p (Panel.)
+          c (VerticalLayout.)]
+      (set-content! p c) => irrelevant
+      (.getContent p) => c)))
 
 (facts "about labels"
   (fact "it has the right caption"
