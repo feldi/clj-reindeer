@@ -4,14 +4,15 @@
   (:import [com.vaadin.ui
             VerticalLayout
             Button
-            Panel]))
+            Panel
+            TextField]))
 
-(def on-click-called (ref false))
+(def listener-called (ref false))
 
-(background (before :facts (dosync (ref-set on-click-called false))))
+(background (before :facts (dosync (ref-set listener-called false))))
 
-(defn on-click [e]
-  (dosync (ref-set on-click-called true)))
+(defn test-listen! [e]
+  (dosync (ref-set listener-called true)))
 
 (facts "about containers"
   (fact "it is parent after add"
@@ -51,20 +52,20 @@
       (.getCaption l) => "Caption")))
 
 (facts "about buttons"
-  (let [b (button :caption "Caption" :on-click on-click)]
+  (let [b (button :caption "Caption" :on-click test-listen!)]
     (fact "it has the right caption"
       (.getCaption b) => "Caption")
     (fact "it calls the listener function"
       (.click b) => irrelevant 
-      (deref on-click-called) => true)))
+      (deref listener-called) => true)))
 
 (facts "about native buttons"
-  (let [b (native-button :caption "Caption" :on-click on-click)]
+  (let [b (native-button :caption "Caption" :on-click test-listen!)]
     (fact "it has the right caption"
       (.getCaption b) => "Caption")
     (fact "it calls the listener function"
       (.click b) => irrelevant
-      (deref on-click-called) => true)))
+      (deref listener-called) => true)))
 
 (facts "about horizontal layouts"
   (let [b1 (button :caption "b1")
@@ -87,3 +88,13 @@
       (.isSpacing v) => true)
     (fact "it has a style"
       (.getStyleName v) => "foo")))
+
+(facts "about fields"
+  (fact "it sets the value"
+    (let [f (TextField.)]
+      (set-value! f "foo") => irrelevant
+      (get-value f) => "foo")
+  (fact "it listens to value changes"
+    (let [f (text-field :change-listener test-listen!)]
+      (set-value! f "bar") => irrelevant
+      (deref listener-called) => true))))
