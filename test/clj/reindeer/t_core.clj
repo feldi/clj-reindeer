@@ -31,6 +31,20 @@
       (set-content! p c) => irrelevant
       (.getContent p) => c)))
 
+(facts "about v-gaps"
+  (fact "it has a width"
+    (let [g (v-gap :width "30")]
+      (.getWidth g) => 30.0))
+  (fact "it has a height"
+    (let [g (v-gap :height "40")]
+      (.getHeight g) => 40.0)))
+
+(facts "about h-gaps"
+  (fact "it has a height"
+    (let [c (VerticalLayout.)
+          g (h-gap c :height "10")]
+      (.getHeight g) => 10.0)))
+  
 (facts "about labels"
   (fact "it has the right caption"
     (let [l (label "Caption")]
