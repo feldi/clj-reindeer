@@ -57,3 +57,11 @@
     (fact "it calls the listener function"
       (.click b) => irrelevant 
       (deref on-click-called) => true)))
+
+(facts "about native buttons"
+  (let [b (native-button :caption "Caption" :on-click on-click)]
+    (fact "it has the right caption"
+      (.getCaption b) => "Caption")
+    (fact "it calls the listener function"
+      (.click b) => irrelevant
+      (deref on-click-called) => true)))
