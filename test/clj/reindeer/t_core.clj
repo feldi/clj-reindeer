@@ -65,3 +65,25 @@
     (fact "it calls the listener function"
       (.click b) => irrelevant
       (deref on-click-called) => true)))
+
+(facts "about horizontal layouts"
+  (let [b1 (button :caption "b1")
+        b2 (button :caption "b2")
+        h (h-l :items [b1 b2] :spacing true :style-name "foo")]
+    (fact "it has items"
+      (.getComponentCount h) => 2)
+    (fact "it has spacing"
+      (.isSpacing h) => true)
+    (fact "it has a style"
+      (.getStyleName h) => "foo")))
+
+(facts "about vertical layouts"
+  (let [b1 (button :caption "b1")
+        b2 (button :caption "b2")
+        v (v-l :items [b1 b2] :spacing true :style-name "foo")]
+    (fact "it has items"
+      (.getComponentCount v) => 2)
+    (fact "it has spacing"
+      (.isSpacing v) => true)
+    (fact "it has a style"
+      (.getStyleName v) => "foo")))
