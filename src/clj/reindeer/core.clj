@@ -45,7 +45,7 @@
              Label Button Button$ClickListener Button$ClickEvent
              NativeButton OptionGroup
              AbstractOrderedLayout HorizontalLayout VerticalLayout
-             AbstractField TextField TextArea PasswordField RichTextArea
+             AbstractField AbstractTextField TextField TextArea PasswordField RichTextArea
              DateField InlineDateField PopupDateField
              Link Embedded CheckBox
              Notification Notification$Type
@@ -306,6 +306,14 @@
     (when cache-time (.setCacheTime   res cache-time))
   res))
 
+(defn ^ExternalResource ext-res 
+  [^String path]
+  (ExternalResource. path))
+
+(defn ^ExternalResource ext-res-by-url 
+  [^URL url]
+  (ExternalResource. url))
+
 ; TODO StreamResource and StreamSource
 
 
@@ -322,6 +330,8 @@
   (get-description* [this])
   (set-width!* [this v])
   (get-width* [this])
+  (set-height!* [this v])
+  (get-height* [this])
   (set-icon!* [this r])
   (get-icon* [this])
 )
@@ -337,6 +347,8 @@
     (get-description* [this] (.getDescription this))
     (set-width!* [this v] (.setWidth this ^String v))
     (get-width* [this] (.getWidth this))
+    (set-height!* [this v] (.setHeight this ^String v))
+    (get-height* [this] (.getHeight this))
     (set-icon!* [this r] (.setIcon this ^Resource r))
     (get-icon* [this] (.getIcon this))
   )
@@ -391,6 +403,16 @@
   [this]
   (get-width* this))
 
+(defn- set-height!
+  "Internal use only"
+  [this v]
+  (set-height!* this v))
+
+(defn- get-height
+  "Internal use only"
+  [this]
+  (get-height* this))
+
 (defn- set-icon!
   "Internal use only"
   [this r]
@@ -400,7 +422,6 @@
   "Internal use only"
   [this]
   (get-icon* this))
-
 
 (defn listen!
   [^AbstractComponent c 
@@ -432,13 +453,39 @@
     (default-option :description set-description! get-description ["A string" "Anything accepted by (clojure.core/slurp)"])
     (default-option :data set-data! get-data ["Anything." "Associate arbitrary user-data with a widget."])
     (default-option :width set-width! get-width ["A string" "A width as string, e.g in percent"])
+    (default-option :height set-height! get-height ["A string" "A height as string, e.g in percent"])
     (default-option :icon set-icon! get-icon ["An icon" "Icon from theme resource"])
    ))
+
+;; Label
+
+(defn- set-content-mode!
+   "Internal use only"
+  [^Label lbl ^ContentMode mode]
+  (.setContentMode lbl mode))
+
+(defn- get-content-mode
+  "Internal use only"
+  [^Label lbl]
+  (.getContentMode lbl))
+
+(defn- set-label-value!
+   "Internal use only"
+  [^Label lbl ^String v]
+  (.setValue lbl v))
+
+(defn- get-label-value
+  "Internal use only"
+  [^Label lbl]
+  (.getValue lbl))
 
 (def label-options
   (merge
     default-options
-    (option-map)))
+    (option-map
+        (default-option :content-mode set-content-mode! get-content-mode ["content mode" ""])
+        (default-option :value set-label-value! get-label-value ["value" ""])
+      )))
 
 (option-provider Label label-options)
 
@@ -495,9 +542,10 @@
 )
 
 (defn ^HorizontalLayout h-l
-  [& {:keys [items spacing style-name] } ]
+  [& {:keys [items spacing margin-all style-name] } ]
    (let [h (HorizontalLayout.)]
      (when spacing (.setSpacing h spacing))
+     (when margin-all (.setMargin h ^boolean margin-all))
      (when style-name (.addStyleName h style-name))
      (doseq [item items] 
        (add! h item))
@@ -505,9 +553,10 @@
 )
 
 (defn ^VerticalLayout v-l
-  [& {:keys [items spacing style-name] } ]
+  [& {:keys [items spacing margin-all style-name] } ]
    (let [v (VerticalLayout.)]
      (when spacing (.setSpacing v spacing))
+     (when margin-all (.setMargin v ^boolean margin-all))
      (when style-name (.addStyleName v style-name))
      (doseq [item items] 
        (add! v item)
@@ -526,6 +575,11 @@
   "Generic field value getter."
   [^AbstractField af]
   (.getValue af))
+
+(defn set-input-prompt!
+  [^AbstractTextField tf ^String prompt]
+  (.setInputPrompt tf prompt )
+  )
 
 (defn- set-value-change-listener!
   [^AbstractField af func]
@@ -546,10 +600,11 @@
 (defwidget text-field TextField
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :input-prompt set-input-prompt! nil ["input prompt" ""])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
   
 (defwidget text-area TextArea
   [default-options]
@@ -650,20 +705,32 @@
 
 ;; Link 
 
+(defn- set-resource!
+  "internal use only."
+  [^Link this ^Resource r]
+  (.setResource this r))
+
+(defn- set-target-name!
+  "internal use only."
+  [^Link this ^String n]
+  (.setTargetName this n))
+
 (def link-options
   (merge
     default-options
-    (option-map)))
+    (option-map
+      (default-option :resource set-resource! nil ["resource" ""])
+      (default-option :target-name set-target-name! nil ["target name" ""])
+      )))
 
 (option-provider Link link-options)
 
 (defn ^Link link
-  [^String res & args]
+  [& args]
   (case (count args)
-    0 (link res :caption "")
-    1 (link res :caption (first args))
-    (apply-options (Link. nil (ExternalResource. res))
-                   args)))
+    0 (link :caption "")
+    1 (link :caption (first args))
+    (apply-options (Link.) args)))
 
 (option-provider Embedded link-options)
 

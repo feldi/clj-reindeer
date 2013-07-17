@@ -102,7 +102,9 @@
       (deref listener-called) => true)))
 
 (facts "about links"
-  (let [l (link "http://www.foobar.com" :caption "foo")]
+  (let [l (link :target-name "http://www.foobar.com" :caption "foo")]
+     (fact "it has a target name"
+      (.getTargetName l) => "http://www.foobar.com")
     (fact "it has a caption"
       (.getCaption l) => "foo")))
 
