@@ -6,7 +6,7 @@
             Button
             Panel
             TextField]
-           [com.vaadin.terminal
+           [com.vaadin.server
             ExternalResource]))
 
 (def listener-called (ref false))

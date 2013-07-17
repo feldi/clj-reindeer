@@ -75,13 +75,19 @@
 
 (declare add!)
 
-; start up embedded nREPL server
-(defonce reindeer-nrepl-server (start-server :port 7889))
+; embedded nREPL server
+(def reindeer-nrepl-server (atom nil))
+
+(defn start-nrepl-server
+  "start up embedded nREPL server."
+  []
+  (reset! reindeer-nrepl-server (start-server :port 7889)) )
 
 (defn stop-nrepl 
   "end the embedded nREPL server."
   []
-  (stop-server reindeer-nrepl-server))
+  (stop-server reindeer-nrepl-server)
+  (reset! reindeer-nrepl-server nil))
 
 ;; some useful getters for Vaadin application lifecycle stuff
 
