@@ -4,18 +4,19 @@
   (:use [clj.reindeer.core])
 )
 
-(defn init-app 
+
+(defn create-content 
   [] 
-  (main-window :title :clj.xxx.app/windowtitle 
-               :items
+  (v-l :spacing true 
+       :items
                [(h-l :spacing true 
                      :items
-                     [(label "Hello Vaadin/Clojure user! #11#"
+                     [(label "Hello Vaadin/Clojure user!"
                              :description "Tooltip-desc")
                       (button :clj.xxx.app/buttonCaption1 
                               :click (fn [e] (alert :clj.xxx.app/alertMsg1)))
                       (button :clj.xxx.app/logoutButton 
-                              :click (fn [e] (close-app)))
+                              :click (fn [e] (close-session "http://example.com/bye.html")))
                       ])
                 (v-l :spacing true 
                      :items
@@ -28,29 +29,14 @@
                       ])
                 ] ))
 
-(defn on-request-start
-  [request response] 
-  (println "on-request-start called")
-  )
-
-(defn on-requeste-end
-  [request response] 
-  (println "on-request-end called")
-  )
-
-(defn user-changed
-  [event]
-  (println "user-changed called")
-  )
+(defn init-app 
+  [] 
+ )
 
 (defn launch-app 
-  "This is the 'main entry point' to the Vaadin application.
-   It returns an instance of class com.vaadin.Application."
+  "This is the 'main entry point' to the Vaadin application."
   []
-  (build-app :main-theme "reindeer" 
-             :init-fn init-app
-             :user-changed-fn user-changed
-             :on-request-start-fn on-request-start
-             :on-request-end-fn on-request-end
-             :logout-url "http://localhost:8085")
+   (ui :title "Wrapper Vaadin7 Test"
+       :init-fn init-app
+       :content (create-content))
 )
