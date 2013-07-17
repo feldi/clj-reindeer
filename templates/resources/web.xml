@@ -19,6 +19,11 @@
 			<param-name>buildfn</param-name>
 			<param-value>xxx.app/launch-app</param-value>
 	</init-param>
+	<init-param>
+			<description>Vaadin theme name</description>
+			<param-name>themeName</param-name>
+			<param-value>xxxtheme</param-value>
+	</init-param>
     <init-param>
 			<description>Application widgetset</description>
 			<param-name>widgetset</param-name>

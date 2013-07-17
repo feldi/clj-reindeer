@@ -36,7 +36,7 @@
 (defn launch-app 
   "This is the 'main entry point' to the Vaadin application."
   []
-   (ui :title "Wrapper Vaadin7 Test"
+   (ui :title "Vaadin7 Wrapper Test"
        :init-fn init-app
        :content (create-content))
 )
