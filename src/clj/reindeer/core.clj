@@ -20,101 +20,156 @@
                                    cond-doto to-mnemonic-keycode]]
          [clj.reindeer.config :only [Configurable config* config!*]]
          [clj.reindeer.options :only [ignore-option default-option bean-option
-                                      ;;; resource-option around-option
                                       apply-options
                                       option-map option-provider
                                       get-option-value
                                       options-for-class defwidget]]
-          [clj.reindeer.to-widget :only [ToWidget to-widget*]]
-          [clojure.tools.nrepl.server :only [start-server stop-server]]
+         [clj.reindeer.to-widget :only [ToWidget to-widget*]]
+         [clojure.tools.nrepl.server :only [start-server stop-server]]
          )
-   (:import [java.net URL] 
-            [javax.servlet.http HttpServletRequest HttpServletResponse]
-          ;  [com.vaadin Application Application$UserChangeListener Application$UserChangeEvent]
-	          [com.vaadin.ui UI AbstractOrderedLayout 
-                           Component Component$Listener
-                           ComponentContainer
-                           AbstractComponent AbstractComponentContainer 
-                           Panel 
-                           Window Window$CloseListener ; Window$Notification
-                           Label Button Button$ClickListener Button$ClickEvent
-                           NativeButton OptionGroup
-                           Alignment
-                           AbstractOrderedLayout HorizontalLayout VerticalLayout
-                           AbstractField TextField TextArea PasswordField RichTextArea
-                           DateField InlineDateField PopupDateField
-                           Link Embedded CheckBox
-                           Notification Notification$Type
-                           ]
-            [com.vaadin.server ; Terminal Terminal$ErrorEvent 
-             Resource ExternalResource ClassResource ThemeResource]
-            [com.vaadin.event FieldEvents$TextChangeListener FieldEvents$TextChangeEvent]
-          ;  [com.vaadin.terminal.gwt.server HttpServletRequestListener]
-            [com.vaadin.data Property$ValueChangeListener]
+   (:import [java.net 
+             URL
+             ] 
+            [javax.servlet.http 
+             HttpServletRequest HttpServletResponse
+             ]
+	          [com.vaadin.ui
+             UI
+             JavaScript
+             AbstractOrderedLayout 
+             Component Component$Listener
+             ComponentContainer
+             AbstractComponent AbstractComponentContainer 
+             Panel Alignment
+             Window Window$CloseListener
+             Label Button Button$ClickListener Button$ClickEvent
+             NativeButton OptionGroup
+             AbstractOrderedLayout HorizontalLayout VerticalLayout
+             AbstractField TextField TextArea PasswordField RichTextArea
+             DateField InlineDateField PopupDateField
+             Link Embedded CheckBox
+             Notification Notification$Type
+             ]
+            [com.vaadin.server
+             VaadinSession WrappedSession VaadinService Page
+             VaadinRequest VaadinResponse
+             Resource ExternalResource ClassResource ThemeResource
+             ]
+            [com.vaadin.event
+             FieldEvents$TextChangeListener FieldEvents$TextChangeEvent
+             ]
+            [com.vaadin.data
+             Property$ValueChangeListener
+             ]
+            [com.vaadin.shared.ui.label
+             ContentMode]
    )
 )
 
 (defn reload []
-  "Helper for easy development at the repl."
+  "Helper for easy development at the REPL."
    (use 'clj.reindeer.core :reload-all)
   )
 
 (set! *warn-on-reflection* true) 
 
-
 (declare add!)
-
-(def vaadin-app (atom nil))
 
 ; start up embedded nREPL server
 (defonce reindeer-nrepl-server (start-server :port 7889))
 
-; end nREPL server
 (defn stop-nrepl 
+  "end the embedded nREPL server."
   []
   (stop-server reindeer-nrepl-server))
 
+;; some useful getters for Vaadin application lifecycle stuff
 
-(defn ^UI get-app
+(defn ^UI get-ui
   []
-  @vaadin-app
-)
+ (UI/getCurrent))
 
-(defn def-v7-application
-  [^UI ui & {:keys [main-theme
+(defn ^Page get-page
+  []
+  (Page/getCurrent))
+
+(defn ^VaadinSession get-session
+  []
+  (VaadinSession/getCurrent))
+
+(defn ^WrappedSession get-wrapped-session
+  []
+  (.getSession (get-session)))
+
+(defn ^VaadinService get-service
+  []
+  (VaadinService/getCurrent))
+
+(defn ^VaadinRequest get-request
+  []
+  (VaadinService/getCurrentRequest))
+
+(defn ^VaadinResponse get-response
+  []
+  (VaadinService/getCurrentResponse))
+
+;; JavaScript
+
+(defn ^JavaScript get-js
+  []
+  (JavaScript/getCurrent))
+
+(defn execute-js
+  [js-code]
+  (.execute (get-js) js-code))
+
+
+
+;; Vaadin UI
+
+(defn set-ui-content!
+  [^Component c]
+  (.setContent ^UI (get-ui) c)
+  (println "did set ui content" ))
+
+
+(defn ui
+  [& {:keys [
+             title
              init-fn
-             close-fn
-             user-changed-fn
-             terminal-error-fn
+             content
              error-handler
-             on-request-start-fn
-             on-request-end-fn
-             logout-url
-             main-window
-             app-windows] } ]
- 
-   (println "enter def-v7-app ..." )
-      (reset! vaadin-app ui) 
-;      (when main-theme
-;         (.setTheme ^Application this main-theme))
-      (when main-window
-        (println "set-content ui main window ..." + main-window )
-        (.setContent ui main-window) 
-        (println "setted-content ui main window " )
-        )
-      (when app-windows
-        )
-      (when init-fn
-        (init-fn))
-      (println "exit def-v7-app ..." )
-;    (close 
-;      []
-;      (when close-fn
-;        (close-fn))
-;        (proxy-super close))
+            ]}]
+   
+    (when title
+     (.setTitle (get-page) title))
+   
+   (when content
+     (set-ui-content! content))
+   
+   (when init-fn
+     (init-fn))
+   
+   (when error-handler
+     (.setErrorHandler (get-ui) error-handler))
 )
 
+(defn access-ui
+  "Provide exclusive access to the UI from outside a request handling thread."
+  [runnable]
+  (.access (get-ui) runnable))
 
+(defn close-session
+  "Close the session, destroy UIs."
+  [^String redirect-url]
+  (.setLocation (get-page) redirect-url)
+  ;; needed ?? (.close (get-ui))
+  (.close (get-session))
+  ;; needed ?? (.invalidate (get-wrapped-session))
+  )
+
+
+;; TODO def-ui 
 
 ;(defn defapplication
 ;  [& {:keys [main-theme
@@ -171,80 +226,15 @@
 ;        (proxy-super terminalError event)))
 ;    ))
 ;
-;(defn close-application
-;  []
-;  (println "Closing Vaadin Application.")
-;  (.close ^Application (get-app))
-;)
 
 (defn get-locale
   []
-  (.getLocale (get-app)))
+  (.getLocale (get-ui)))
 
-
-;(defn- set-app-close-listener!
-;  [^Window win]
-;  (.addListener win 
-;    (reify Window$CloseListener
-;	    (windowClose [this event] (close-application))))
-;)
-;
-;(defn set-main-window!
-;  [win] 
-;  (.setMainWindow (get-app) win)
-;  (set-app-close-listener! win)
-;  win
-;)
-;
-
-(defn ^Window get-main-window 
-  []
- (.. (get-app) getMainWindow)
-)
-
-;(defn remove-main-window!
-;  []
-;  (when (get-main-window)
-;    (.removeWindow (get-app) (get-main-window))))
-;
-;(defn- set-win-close-listener!
-;  [^Window win func]
-;  (.addListener win
-;    (reify Window$CloseListener
-;	    (windowClose [this event]
-;        (func event)
-;      )))
-;)
-
-;(defn ^Window app-window 
-;  [& {:keys [title name theme height width position-x position-y 
-;             close-listener items] } ] 
-;  (let [win (Window. (or (i18n title) "TODO: set title"))]
-;    (when name       (.setName      win name))
-;    (when theme      (.setTheme     win theme))
-;    (when height     (.setHeight    win ^String height))
-;    (when width      (.setWidth     win ^String width))
-;    (when position-x (.setPositionX win position-x))
-;    (when position-y (.setPositionY win position-y))
-;    (when close-listener (set-win-close-listener! win close-listener))
-;	  (doseq [item items] 
-;	    (add! win item)
-;    )
-;  win))
-;
-;(defmacro main-window
-;  [& args]
-;  `(set-main-window! (app-window ~@args))
-;  )
-;
-;(defn remove-app-window!   
-;  [^Window win]
-;  (.removeWindow (get-app) win))
-
-(defn ^Window sub-window
+(defn ^Window window
   [& {:keys [title closable? draggable? modal? resizable? resizeLazy? 
              height width position-x position-y 
-             close-listener items] } ] 
+             items] } ] 
   (let [win (Window. (or title "TODO: set title"))]
     (when closable?   (.setClosable    win closable?))  
     (when draggable?  (.setDraggable   win draggable?))
@@ -255,29 +245,28 @@
     (when width       (.setWidth       win ^String width))
     (when position-x  (.setPositionX   win position-x))
     (when position-y  (.setPositionY   win position-y))
-   ; (when close-listener (set-win-close-listener! win close-listener))
 	  (doseq [item items] 
 	    (add! win item)
     )
   win))
 
-(defn remove-sub-window!
-  [^Window win ^Window sub-win]
-  (.removeWindow win sub-win))
+(defn add-window!
+  "Adds and opens a sub window." 
+  [^Window sub-win]
+  (.addWindow (get-ui) sub-win))
+
+(defn remove-window!
+  "Removes and closes a sub window." 
+  [^Window sub-win]
+  (.removeWindow (get-ui) sub-win))
 
 (defn open-url 
   "open a url on a new HTML target browser window or tab."
   [^URL url & target]
-  (.open (get-main-window)
+  (.open (get-page)
       (ExternalResource. url)
       (or target "_blank")))
 
-(defn open-window
-  "open a window on a new HTML target browser window or tab."
-  [^Window win & target]
-  (apply open-url 
-         (.getURL win)
-         target))
 
 (defn ^AbstractComponentContainer add!
   [^AbstractComponentContainer c1
@@ -306,7 +295,7 @@
 
 (defn ^ClassResource class-res 
   [path & {:keys [buffer-size cache-time] } ] 
-  (let [res (ClassResource. path (get-app))]
+  (let [res (ClassResource. path (get-ui))]
     (when buffer-size (.setBufferSize res buffer-size))
     (when cache-time (.setCacheTime   res cache-time))
   res))
@@ -457,7 +446,7 @@
 (defn v-gap 
   "Vertical spacer with optional height and width."
   [& {:keys [height width] } ]
-  (let [^Label gap (Label. "&nbsp;" ^int Label/CONTENT_XHTML )]
+  (let [^Label gap (Label. "&nbsp;" ContentMode/HTML )]
     (when height (.setHeight gap ^String height))
     (when width  (.setWidth  gap ^String width))
     gap)
@@ -466,7 +455,7 @@
 (defn h-gap 
   "Horizontal, expanding spacer."
   [^AbstractOrderedLayout layout & {:keys [height] } ]
-  (let [^Label gap (Label. "&nbsp;" ^int Label/CONTENT_XHTML)]
+  (let [^Label gap (Label. "&nbsp;" ContentMode/HTML)]
     (.setWidth  gap "100%")
     (when height (.setHeight gap ^String height))
     (add! layout gap)
@@ -614,19 +603,8 @@
 
 (defn alert
   [msg]
- ;; (.. (get-main-window) (showNotification (convert-text-value msg)))
-  (Notification/show "Alert"  (convert-text-value msg)
-                     Notification$Type/HUMANIZED_MESSAGE )
+  (Notification/show (convert-text-value msg))
   )
-
-;(defn show-notification
-;  "Generic show method."
-;  ([caption msg type]
-;    (show-notification (get-main-window) caption msg type))
-;  ([^Window win caption msg type]
-;    (.. win (showNotification (convert-text-value caption)
-;                              (convert-text-value msg)
-;                              type))))
 
 (defn show-notification
   "Generic show method."
@@ -636,45 +614,35 @@
 
 (defn show
   "Shows humanized message."
-  ([caption msg]
-  (show-notification (get-main-window) caption msg
+  [caption msg]
+  (show-notification caption msg
                      Notification$Type/HUMANIZED_MESSAGE))
-  ([^Window win caption msg]
-  (show-notification win caption msg
-                     Notification$Type/HUMANIZED_MESSAGE)))
-
+  
 (defn show-warning
   "Shows warning message."
-  ([caption msg]
+  [caption msg]
   (show-notification caption msg
          Notification$Type/WARNING_MESSAGE))
-  ([^Window win caption msg]
-    (show-notification win caption msg
-         Notification$Type/WARNING_MESSAGE)))
-
+ 
 (defn show-error
   "Shows error message."
-  ([caption msg]
+  [caption msg]
     (show-notification caption msg
                        Notification$Type/ERROR_MESSAGE))
-  ([^Window win caption msg]
-    (show-notification win caption msg
-                       Notification$Type/ERROR_MESSAGE)))
 
 (defn show-tray
   "Shows message in system tray area."
-  ([caption msg]
+  [caption msg]
     (show-notification caption msg
                        Notification$Type/TRAY_NOTIFICATION))
-  ([^Window win caption msg]
-    (show-notification win caption msg
-                       Notification$Type/TRAY_NOTIFICATION)))
 
-; TODO implement Window$Notification with options
+; TODO implement Notification with options
 (defn create-notification
   [caption msg type]
   (Notification. caption msg type)
   )
+
+;; Link 
 
 (def link-options
   (merge
@@ -864,4 +832,18 @@
 (defn set-alignment!
   [^AbstractOrderedLayout l ^Component c ^Alignment a]
   (.setComponentAlignment l c a ))
+
+(defn print-page
+  "Print the current web page."
+  []
+  (execute-js "print();"))
+
+(defn print-button
+  "A convenient 'print-this-page' button."
+  [caption]
+  (button :caption  (convert-text-value (or caption "Print"))
+          :on-click (fn [e] (print-page)))
+  )
+
+
 
