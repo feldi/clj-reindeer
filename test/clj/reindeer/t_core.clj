@@ -110,3 +110,15 @@
   (let [e (embedded (ExternalResource. "http://www.foobar.com") :caption "foo")]
     (fact "it has a caption"
       (.getCaption e) => "foo")))
+
+(facts "about widgets"
+  (let [b (doto (Button.) 
+            (.setHeight "100") 
+            (.setWidth "200"))]
+    (fact "it knows its height"
+      (height b) => (roughly 100))
+    (fact "it knows its width"
+      (width b) => (roughly 200)) 
+    (fact "it can add a style name"
+      (add-style-name b "bar") => irrelevant
+      (.getStyleName b) => "bar")))
