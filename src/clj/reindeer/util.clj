@@ -13,8 +13,11 @@
     :doc "Reindeer utility functions"}
   clj.reindeer.util
   (:require clojure.string)
+  (:use [i18n.core])
   (:import [java.net URL URI MalformedURLException URISyntaxException]
-           [javax.servlet ServletContext])
+           [javax.servlet ServletContext]
+           [com.vaadin.server VaadinSession DeploymentConfiguration]
+           [com.vaadin.ui AbstractComponentContainer])
 )
 
 ;  Partly "borrowed" and adapted from project seesaw.
@@ -131,23 +134,6 @@
             (URI. (str s))
             (catch URISyntaxException e nil))))
 
-(defn to-dimension
-  [v]
-  (cond
-    (instance? java.awt.Dimension v) v
-    (and (vector? v) (= 3 (count v)) (= :by (second v)))
-      (let [[w by h] v] (java.awt.Dimension. w h))
-    :else (illegal-argument "v must be a Dimension or [w :by h] got " v)))
-
-(defn to-insets
-  [v]
-  (cond
-    (instance? java.awt.Insets v) v
-    (number? v) (java.awt.Insets. v v v v)
-    (vector? v) (let [[top left bottom right] v]
-                  (java.awt.Insets. top left (or bottom top) (or right left)))
-    :else (illegal-argument "Don't know how to create insets from %s" v)))
-
 (defprotocol Children 
   "A protocol for retrieving the children of a widget as a seq. 
   This takes care of idiosyncracies of frame vs. menus, etc."
@@ -155,40 +141,22 @@
   (children [c] "Returns a seq of the children of the given widget"))
 
 (extend-protocol Children
-  ; Thankfully container covers JComponent, JFrame, dialogs, applets, etc.
-  java.awt.Container    (children [this] (seq (.getComponents this)))
-  ; Special case for menus. We want the logical menu items, not whatever
-  ; junk is used to build them.
-  javax.swing.JMenuBar  (children [this] (seq (.getSubElements this)))
-  javax.swing.JMenu     (children [this] (seq (.getSubElements this))))
+ 
+  AbstractComponentContainer  (children [this] (iterator-seq (.iterator this)))
+  
+  )
 
 (defn collect
-  "Given a root widget or frame, returns a depth-fist seq of all the widgets
+  "Given a root widget or panel, returns a depth-fist seq of all the widgets
   in the hierarchy. For example to disable everything:
   
-    (config (collect (.getContentPane my-frame)) :enabled? false)
+    (config! (collect (get-ui-content)) :enabled? false)
   "
   [root]
   (tree-seq 
     (constantly true) 
     children
     root))
-
-(defn resource-key?
-  "Returns true if v is a i18n resource key, i.e. a namespaced keyword"
-  [v]
-  (and (keyword? v) (namespace v)))
-
-;(defn resource
-;  [message]
-;  (if (resource-key? message)
-;    (j18n/resource message)
-;    (str message)))
-
-; TODO
-(defn resource
-  [message]
-   (str message))
 
 (defn ^Integer to-mnemonic-keycode
   "Convert a character to integer to a mnemonic keycode. In the case of char
@@ -205,7 +173,7 @@
     http://download.oracle.com/javase/6/docs/api/java/awt/event/KeyEvent.html"
   [v]
   (cond 
-    (resource-key? v) (to-mnemonic-keycode (resource v))
+    (i18n-key? v) (to-mnemonic-keycode (i18n v))
     (string? v)       (to-mnemonic-keycode (.charAt v 0))
     (char? v)         (int (Character/toUpperCase ^Character v))
     :else             (int v)))
@@ -224,4 +192,10 @@
   (into {} (for [param (enumeration-seq (.getInitParameterNames ctx))
                  :let [value (.getInitParameter ctx param)]]
              [(keyword param) value])))
+
+(defn get-vaadin-param
+  "Returns the session parameter from vaadin's web.xml or system property."
+  [^VaadinSession session param-name default-value]
+  (-> session .getConfiguration 
+                           (.getApplicationOrSystemProperty param-name default-value)))
 

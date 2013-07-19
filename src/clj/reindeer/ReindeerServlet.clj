@@ -12,23 +12,22 @@
   ^{:doc "Generic servlet for the clojure vaadin bridge."
     :author "Peter Feldtmann"}
   clj.reindeer.ReindeerServlet
+  (:use [clj.reindeer.util])
   (:gen-class
    :extends com.vaadin.server.VaadinServlet
    ))
 
-(defn- get-theme-name 
-  "Helper: gets the theme name from 'web.xml' ."
-  [session]
-  (-> session .getConfiguration 
-    (.getApplicationOrSystemProperty "themeName" "reindeer"))) ;; reindeer is default theme
-
-(defn- create-ui-provider 
-  "Helper: creates an UIProvider with the ability to override the theme name."
+(defn- create-reindeer-ui-provider 
+  "Helper: creates an UIProvider with the ability to override the theme name and widget set."
   [^com.vaadin.server.SessionInitEvent siEvent]
    (proxy [com.vaadin.server.DefaultUIProvider] [] 
         (getTheme 
           [^com.vaadin.server.UICreateEvent crtEvent]
-          (get-theme-name (.getSession siEvent)))))
+          (get-vaadin-param (.getSession siEvent) "themeName" "reindeer")) ;; reindeer is default theme
+         (getWidgetset 
+          [^com.vaadin.server.UICreateEvent crtEvent]
+          (get-vaadin-param (.getSession siEvent) "widgetset" nil)) 
+        ))
 
 (defn- create-session-init-listener
   "Helper: creates a vaadin session init listener with the new ui provider."
@@ -36,9 +35,7 @@
   (reify com.vaadin.server.SessionInitListener
      (^void sessionInit
             [this ^com.vaadin.server.SessionInitEvent siEvent]
-            (-> siEvent .getSession (.addUIProvider (create-ui-provider siEvent))))))
-
-
+            (-> siEvent .getSession (.addUIProvider (create-reindeer-ui-provider siEvent))))))
 
 (defn -servletInitialized
   "Called automatically by Vaadin when the servlet is ready."

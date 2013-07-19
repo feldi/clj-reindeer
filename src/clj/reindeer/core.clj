@@ -16,7 +16,7 @@
   (:use [i18n.core :only [i18n-key? i18n]]
          [clj.reindeer.util :only [illegal-argument to-seq check-args
                                    constant-map
-                                   to-dimension to-insets to-url try-cast
+                                   to-url try-cast
                                    cond-doto to-mnemonic-keycode]]
          [clj.reindeer.config :only [Configurable config* config!*]]
          [clj.reindeer.options :only [ignore-option default-option bean-option
@@ -73,7 +73,7 @@
 
 (set! *warn-on-reflection* true) 
 
-(declare add!)
+(declare add-components!)
 
 ; embedded nREPL server
 (def reindeer-nrepl-server (atom nil))
@@ -136,13 +136,15 @@
 (defn set-ui-content!
   [^Component c]
   (.setContent ^UI (get-ui) c)
-  (println "did set ui content" ))
+  )
 
+(defn get-ui-content
+  []
+  (.getContent (get-ui)))
 
-(defn ui
+(defn config-ui!
   [& {:keys [
              title
-             init-fn
              content
              error-handler
             ]}]
@@ -152,9 +154,6 @@
    
    (when content
      (set-ui-content! content))
-   
-   (when init-fn
-     (init-fn))
    
    (when error-handler
      (.setErrorHandler (get-ui) error-handler))
@@ -251,10 +250,8 @@
     (when width       (.setWidth       win ^String width))
     (when position-x  (.setPositionX   win position-x))
     (when position-y  (.setPositionY   win position-y))
-	  (doseq [item items] 
-	    (add! win item)
-    )
-  win))
+    (add-components! win items)
+    win))
 
 (defn add-window!
   "Adds and opens a sub window." 
@@ -275,22 +272,22 @@
 
 
 (defn ^AbstractComponentContainer add!
-  [^AbstractComponentContainer c1
-                    ^Component c2]
-  (.addComponent c1 c2)
-  c1
-  )
+  [^AbstractComponentContainer c1 ^Component c2]
+  (.addComponent c1  c2)
+  c1)
 
 (defn set-expand-ratio!
   [^AbstractOrderedLayout layout 
    ^Component c 
    ratio]
-  (.setExpandRatio layout c (float ratio)))
+  (.setExpandRatio layout c (float ratio))
+  layout)
  
 (defn set-content!
   "Set content of a panel (window)."
   [^Panel p ^ComponentContainer c]
-  (.setContent p c))
+  (.setContent p c)
+  p)
 
 ;; Resource handling
 
@@ -442,19 +439,12 @@
   (option-map
     ;(default-option :id seesaw.selector/id-of! seesaw.selector/id-of ["A keyword id for the widget"])
     ;(default-option :class seesaw.selector/class-of! seesaw.selector/class-of [:class-name, #{:multiple, :class-names}])
-    ;(default-option
-    ;  :meta-data
-    ;  (fn [c v] (put-meta c ::user-data v))
-    ;  (fn [c]   (get-meta c ::user-data))
-    ;  ["Anything."
-    ;   "Associate meta-data with a widget."
-    ;   ])
     (default-option :caption set-caption! get-caption ["A string" "Anything accepted by (clojure.core/slurp)"])
     (default-option :description set-description! get-description ["A string" "Anything accepted by (clojure.core/slurp)"])
     (default-option :data set-data! get-data ["Anything." "Associate arbitrary user-data with a widget."])
     (default-option :width set-width! get-width ["A string" "A width as string, e.g in percent"])
     (default-option :height set-height! get-height ["A string" "A height as string, e.g in percent"])
-    (default-option :icon set-icon! get-icon ["An icon" "Icon from theme resource"])
+    (default-option :icon set-icon! get-icon ["An icon" "Icon from resource"])
    ))
 
 ;; Label
@@ -536,33 +526,43 @@
 (defn ^NativeButton native-button
   [& args ]
    (case (count args)
-    0 (button :caption "")
-    1 (button :caption (first args))
+    0 (native-button :caption "")
+    1 (native-button :caption (first args))
     (apply-options (NativeButton. "") args))
 )
 
+;; Layouts
+
+(defn- add-components!
+  [^AbstractComponentContainer container items]
+   (doseq [item items] 
+     (cond 
+       (nil? item) nil
+       ;; make strings to labels 'on the fly'
+       (instance? String item) (add! container (label :value item))
+       :else (add! container item))
+       ))
+
 (defn ^HorizontalLayout h-l
-  [& {:keys [items spacing margin-all style-name] } ]
+  [& {:keys [items spacing margin-all width height style-name] } ]
    (let [h (HorizontalLayout.)]
+     (when width (.setWidth h width))
+     (when height (.setHeight h height))
      (when spacing (.setSpacing h spacing))
      (when margin-all (.setMargin h ^boolean margin-all))
      (when style-name (.addStyleName h style-name))
-     (doseq [item items] 
-       (add! h item))
-     h)
-)
+     (add-components! h items) 
+     h))
 
 (defn ^VerticalLayout v-l
-  [& {:keys [items spacing margin-all style-name] } ]
+  [& {:keys [items spacing margin-all width height style-name] } ]
    (let [v (VerticalLayout.)]
      (when spacing (.setSpacing v spacing))
      (when margin-all (.setMargin v ^boolean margin-all))
-     (when style-name (.addStyleName v style-name))
-     (doseq [item items] 
-       (add! v item)
-    )
-  v)
-)
+     (when width (.setWidth v width))
+     (when height (.setHeight v height))
+     (add-components! v items) 
+     v))
 
 ;; Fields
 
@@ -870,6 +870,7 @@
   [^Component c 
    ^String n]
   (.addStyleName c n)
+  c
 )
 
 (defn remove-style-name
@@ -877,6 +878,7 @@
   [^Component c 
    ^String n]
   (.removeStyleName c n)
+  c
 )
 
 (defn ^OptionGroup option-group
@@ -902,20 +904,23 @@
 (def radio-buttons option-group)
 (def check-boxes option-group-multi)
 
-(defn set-alignment!
-  [^AbstractOrderedLayout l ^Component c ^Alignment a]
-  (.setComponentAlignment l c a ))
+;; Misc.
 
-(defn print-page
+(defn align!
+  [^AbstractOrderedLayout l ^Component c ^Alignment a]
+  (.setComponentAlignment l c a )
+  l)
+
+(defn print-current-page
   "Print the current web page."
   []
   (execute-js "print();"))
 
-(defn print-button
+(defn print-page-button
   "A convenient 'print-this-page' button."
   [caption]
   (button :caption  (convert-text-value (or caption "Print"))
-          :on-click (fn [e] (print-page)))
+          :on-click (fn [_] (print-current-page)))
   )
 
 

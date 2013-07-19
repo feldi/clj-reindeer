@@ -15,7 +15,8 @@
       :author "Peter Feldtmann, Dave Ray"}
   clj.reindeer.options
   (:use [clj.reindeer.util :only [camelize illegal-argument check-args
-                                  resource resource-key? to-seq]])
+                                  to-seq]]
+        [i18n.core])
   (:require [clojure.string]))
 
 
@@ -86,7 +87,7 @@
   ([name] (ignore-option name nil)))
 
 (defn resource-option 
-  "Defines an option that takes a j18n namespace-qualified keyword as a
+  "Defines an option that takes a i18n namespace-qualified keyword as a
   value. The keyword is used as a prefix for the set of properties in
   the given key list. This allows subsets of widget options to be configured
   from a resource bundle.
@@ -100,13 +101,13 @@
   (default-option 
     option-name 
     (fn [target value]
-      {:pre [(resource-key? value)]}
+      {:pre [(i18n-key? value)]}
       (let [nspace (namespace value)
             prefix (name value)]
             (apply-options
               target (mapcat (fn [k]
                               (let [prop (keyword nspace (str prefix "." k))]
-                                (when-let [v (resource prop)]
+                                (when-let [v (i18n prop)]
                                   [(keyword k) v])))
                             (map name keys)))))
     nil
