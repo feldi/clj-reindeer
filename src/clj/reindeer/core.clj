@@ -49,20 +49,24 @@
              DateField InlineDateField PopupDateField
              Link Embedded CheckBox
              Notification Notification$Type
+             Table
              ]
             [com.vaadin.server
              VaadinSession WrappedSession VaadinService Page
              VaadinRequest VaadinResponse
              Resource ExternalResource ClassResource ThemeResource
+             UserError
              ]
             [com.vaadin.event
              FieldEvents$TextChangeListener FieldEvents$TextChangeEvent
-             ]
-            [com.vaadin.data
-             Property$ValueChangeListener
-             ]
+             ItemClickEvent ItemClickEvent$ItemClickListener]
             [com.vaadin.shared.ui.label
              ContentMode]
+            [com.vaadin.data
+             Property Property$ValueChangeListener
+             Item Container]
+            [com.vaadin.data.util
+             ObjectProperty IndexedContainer]
    )
 )
 
@@ -128,7 +132,6 @@
 (defn execute-js
   [js-code]
   (.execute (get-js) js-code))
-
 
 
 ;; Vaadin UI
@@ -303,11 +306,11 @@
     (when cache-time (.setCacheTime   res cache-time))
   res))
 
-(defn ^ExternalResource ext-res 
+(defn ^ExternalResource external-resource 
   [^String path]
   (ExternalResource. path))
 
-(defn ^ExternalResource ext-res-by-url 
+(defn ^ExternalResource external-resource-by-url 
   [^URL url]
   (ExternalResource. url))
 
@@ -331,6 +334,8 @@
   (get-height* [this])
   (set-icon!* [this r])
   (get-icon* [this])
+  (set-immediate!* [this v])
+  (is-immediate?* [this])
 )
 
 (extend-protocol ConfigAbstractComponent
@@ -348,7 +353,23 @@
     (get-height* [this] (.getHeight this))
     (set-icon!* [this r] (.setIcon this ^Resource r))
     (get-icon* [this] (.getIcon this))
+    (set-immediate!* [this v] (.setImmediate this v))
+    (is-immediate?* [this] (.isImmediate this))
   )
+
+(defprotocol ConfigAbstractField
+  "Protocol to hook into AbstractField"
+  (set-value!* [this v])
+  (get-value* [this])
+)
+
+(extend-protocol ConfigAbstractField
+ 
+  com.vaadin.ui.AbstractField
+    (set-value!* [this v] (.setValue this v))
+    (get-value* [this] (.getValue this))
+  )
+
 
 (defn- ^String convert-text-value
   [v]
@@ -420,19 +441,31 @@
   [this]
   (get-icon* this))
 
+(defn- set-immediate!
+  "Internal use only"
+  [this v]
+  (set-immediate!* this v))
+
+(defn- is-immediate?
+  "Internal use only"
+  [this]
+  (is-immediate?* this))
+
+(defn- set-value!
+  "Internal use only"
+  [this v]
+  (set-value!* this v))
+
+(defn- get-value
+  "Internal use only"
+  [this]
+  (get-value* this))
+
+
 (defn listen!
   [^AbstractComponent c 
    ^Component$Listener l]
   (.addListener c l)
-)
-
-(defn- set-button-click-listener!
-  [^Button btn func]
-  (.addListener btn
-    (reify Button$ClickListener
-	    (buttonClick [this event]
-        (func event)
-      )))
 )
 
 (def default-options
@@ -440,11 +473,17 @@
     ;(default-option :id seesaw.selector/id-of! seesaw.selector/id-of ["A keyword id for the widget"])
     ;(default-option :class seesaw.selector/class-of! seesaw.selector/class-of [:class-name, #{:multiple, :class-names}])
     (default-option :caption set-caption! get-caption ["A string" "Anything accepted by (clojure.core/slurp)"])
+    (default-option :icon set-icon! get-icon ["An icon" "Icon from resource"])
     (default-option :description set-description! get-description ["A string" "Anything accepted by (clojure.core/slurp)"])
     (default-option :data set-data! get-data ["Anything." "Associate arbitrary user-data with a widget."])
     (default-option :width set-width! get-width ["A string" "A width as string, e.g in percent"])
     (default-option :height set-height! get-height ["A string" "A height as string, e.g in percent"])
-    (default-option :icon set-icon! get-icon ["An icon" "Icon from resource"])
+    (default-option :immediate? set-immediate! is-immediate? ["immediate" ""])
+   ))
+
+(def default-field-options
+  (option-map
+    (default-option :value set-value! get-value ["value of field" ""])
    ))
 
 ;; Label
@@ -506,6 +545,16 @@
     gap)
   )
 
+;; Button
+
+(defn- set-button-click-listener!
+  [^Button btn func]
+  (.addListener btn
+    (reify Button$ClickListener
+	    (buttonClick [this event]
+        (func event)
+      ))))
+
 (def button-options
   (merge
     default-options
@@ -566,16 +615,6 @@
 
 ;; Fields
 
-(defn set-value!
-  "Generic field value setter."
-  [^AbstractField this ^Object v]
-  (.setValue this v))
-
-(defn get-value
-  "Generic field value getter."
-  [^AbstractField af]
-  (.getValue af))
-
 (defn set-input-prompt!
   [^AbstractTextField tf ^String prompt]
   (.setInputPrompt tf prompt )
@@ -598,7 +637,7 @@
      )))
 
 (defwidget text-field TextField
-  [default-options]
+  [default-options default-field-options]
   [(option-map
      (default-option :input-prompt set-input-prompt! nil ["input prompt" ""])
      (default-option :init-value set-value! nil ["initial value" ""])
@@ -923,5 +962,152 @@
           :on-click (fn [_] (print-current-page)))
   )
 
+(defn user-error 
+  "create an error message."
+  [msg]
+  (UserError. msg))
 
+;; Properties and Items
+
+(defn object-property 
+  "create a new object property."
+  [value]
+  (ObjectProperty. value))
+
+(defn set-property-value
+  [^Property prop value]
+  (.setValue prop value))
+
+(defn get-property-value
+  [^Property prop]
+  (.getValue prop))
+
+(defn item-click-listener
+  [func]
+  (reify ItemClickEvent$ItemClickListener
+    (itemClick [this event]
+      (func event)
+      )))
+
+(defn get-item-from-item-click-event
+  [^ItemClickEvent evt]
+  (.getItem evt))
+
+(defn get-item-id-from-item-click-event
+  [^ItemClickEvent evt]
+  (.getItemId evt))
+
+(defn get-property-id-from-item-click-event
+  [^ItemClickEvent evt]
+  (.getPropertyId evt))
+
+(defn get-item-property
+  [^Item item pid]
+  (.getItemProperty item pid))
+
+(defn get-item-property-value
+  [^Item item pid]
+  (when-let [prop (get-item-property item pid)]
+    (get-property-value prop)))
+
+(defn set-item-property-value
+  [^Item item pid value]
+  (when-let [prop (get-item-property item pid)]
+    (set-property-value prop value)))
+
+(defn set-item-property-values
+  [^Item item pid-and-values]
+  (doseq [[pid value] pid-and-values]
+    (set-item-property-value item pid value)))
+
+;; Container
+
+(defn add-container-property!
+  [^Container container property-id type default-value]
+  (.addContainerProperty container property-id type default-value))
+
+(defn container-property
+    [& {:keys [pid type default] } ]
+  [pid type default])
+
+(defn add-container-properties 
+  [^Container container props]
+  (doseq [prop props]
+    (apply add-container-property! (list* container prop))))
+
+(defn get-container-item-ids
+  "Gets the ID's of all visible (after filtering and sorting) Items."
+  [^Container container]
+  (.getItemIds container))
+
+(defn ^Item add-container-item
+  [^Container container & item-id]
+  (if item-id
+    (.addItem container item-id)
+    (.addItem container (Object.))))
+
+(defn indexed-container
+  "create an indexed container."
+   [& {:keys [item-ids properties] } ]
+   (let [container (if item-ids
+                     (IndexedContainer. item-ids)
+                     (IndexedContainer.))]
+     (when properties
+       (add-container-properties container properties) 
+       )
+     container))
+
+
+;; Binding
+
+
+;; Table
+
+(defn- set-item-click-listener!
+   "Internal use only"
+  [^Table tbl func]
+  (.addItemClickListener tbl (item-click-listener func)))
+
+(defn- set-column-header-mode!
+   "Internal use only"
+  [^Table tbl mode]
+  (.setColumnHeaderMode tbl mode))
+
+(defn- set-selectable!
+   "Internal use only"
+  [^Table tbl state]
+  (.setSelectable tbl state))
+
+(defn- is-selectable?
+   "Internal use only"
+  [^Table tbl]
+  (.isSelectable tbl))
+
+(defn- set-container-datasource!
+  [^Table tbl ^Container container]
+  (.setContainerDataSource tbl container))
+
+(defn- set-visible-columns!
+  [^Table tbl visibleCols]
+  (.setVisibleColumns tbl (to-array visibleCols)))
+
+(def table-options
+  (merge
+    default-options
+    (option-map
+        (default-option :on-item-click set-item-click-listener! nil ["" ""])
+        (default-option :column-header-mode set-column-header-mode! nil ["" ""])
+        (default-option :selectable? set-selectable! is-selectable? ["" ""])
+        (default-option :container-datasource set-container-datasource! nil ["" ""])
+        (default-option :visible-columns set-visible-columns! nil ["" ""])
+      )))
+
+(option-provider Table table-options)
+
+(defn ^Table table
+  [& args]
+  (case (count args)
+    0 (table :caption "")
+    1 (table :caption (first args))
+    (apply-options (Table. "") args)))
 
