@@ -49,7 +49,7 @@
              DateField InlineDateField PopupDateField
              Link Embedded CheckBox
              Notification Notification$Type
-             Table
+             Table Table$ColumnHeaderMode
              ]
             [com.vaadin.server
              VaadinSession WrappedSession VaadinService Page
@@ -274,23 +274,21 @@
       (or target "_blank")))
 
 
-(defn ^AbstractComponentContainer add!
-  [^AbstractComponentContainer c1 ^Component c2]
-  (.addComponent c1  c2)
-  c1)
+(defn add!
+  [^AbstractComponentContainer component-container component]
+  (.addComponent component-container  component)
+  component-container)
 
 (defn set-expand-ratio!
-  [^AbstractOrderedLayout layout 
-   ^Component c 
-   ratio]
-  (.setExpandRatio layout c (float ratio))
+  [^AbstractOrderedLayout layout component ratio]
+  (.setExpandRatio layout component (float ratio))
   layout)
  
 (defn set-content!
   "Set content of a panel (window)."
-  [^Panel p ^ComponentContainer c]
-  (.setContent p c)
-  p)
+  [^Panel panel component]
+  (.setContent panel component)
+  panel)
 
 ;; Resource handling
 
@@ -488,6 +486,11 @@
 
 ;; Label
 
+; content modes 
+(def content-mode-text ContentMode/TEXT)
+(def content-mode-preformatted ContentMode/PREFORMATTED)
+(def content-mode-html ContentMode/HTML)
+
 (defn- set-content-mode!
    "Internal use only"
   [^Label lbl ^ContentMode mode]
@@ -498,6 +501,7 @@
   [^Label lbl]
   (.getContentMode lbl))
 
+;; Label isnt an AbstractField!, so this specialty is needed 
 (defn- set-label-value!
    "Internal use only"
   [^Label lbl ^String v]
@@ -521,8 +525,8 @@
 (defn ^Label label
   [& args]
   (case (count args)
-    0 (label :caption "")
-    1 (label :caption (first args))
+    0 (label :value "")
+    1 (label :value (first args))
     (apply-options (Label. "") args)))
 
 (defn v-gap 
@@ -588,7 +592,7 @@
      (cond 
        (nil? item) nil
        ;; make strings to labels 'on the fly'
-       (instance? String item) (add! container (label :value item))
+       (string? item) (add! container (label :value item))
        :else (add! container item))
        ))
 
@@ -946,7 +950,7 @@
 ;; Misc.
 
 (defn align!
-  [^AbstractOrderedLayout l ^Component c ^Alignment a]
+  [^AbstractOrderedLayout l  c  a]
   (.setComponentAlignment l c a )
   l)
 
@@ -1091,12 +1095,20 @@
   [^Table tbl visibleCols]
   (.setVisibleColumns tbl (to-array visibleCols)))
 
+(defn- set-striped!
+  [^Table tbl striped?]
+  (if striped?
+    (.addStyleName tbl "striped")
+    (.removeStyleName tbl "striped")) 
+  )
+
 (def table-options
   (merge
     default-options
     (option-map
         (default-option :on-item-click set-item-click-listener! nil ["" ""])
         (default-option :column-header-mode set-column-header-mode! nil ["" ""])
+        (default-option :striped? set-striped! nil ["" ""])
         (default-option :selectable? set-selectable! is-selectable? ["" ""])
         (default-option :container-datasource set-container-datasource! nil ["" ""])
         (default-option :visible-columns set-visible-columns! nil ["" ""])
@@ -1110,4 +1122,12 @@
     0 (table :caption "")
     1 (table :caption (first args))
     (apply-options (Table. "") args)))
+
+; Column Header Modes 
+(def column-header-mode-hidden Table$ColumnHeaderMode/HIDDEN)
+(def column-header-mode-id Table$ColumnHeaderMode/ID)
+(def column-header-mode-explicit Table$ColumnHeaderMode/EXPLICIT)
+(def column-header-mode-explicit-defaults-id Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID)
+
+
 
