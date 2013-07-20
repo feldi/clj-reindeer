@@ -32,6 +32,7 @@
              ] 
             [javax.servlet.http 
              HttpServletRequest HttpServletResponse
+             Cookie
              ]
 	          [com.vaadin.ui
              UI
@@ -75,9 +76,11 @@
    (use 'clj.reindeer.core :reload-all)
   )
 
+; this is NOT a pure Clojure project, but heavy Java related,
+; so it should run as fast as Java if possible! 
 (set! *warn-on-reflection* true) 
 
-(declare add-components!)
+(declare add-components! set-expand-ratio!)
 
 ; embedded nREPL server
 (def reindeer-nrepl-server (atom nil))
@@ -123,7 +126,54 @@
   []
   (VaadinService/getCurrentResponse))
 
-;; JavaScript
+;; Cookies
+
+(defn cookie 
+  "create a cookie"
+  [name value 
+  & {:keys [
+            max-age
+            path
+            version
+            domain
+            http-only
+            secure
+            comment
+            ]}]
+  (let [cookie (Cookie. name value)]
+    (when path      (.setPath cookie path))
+    (when max-age   (.setMaxAge cookie max-age))
+    (when version   (.setVersion cookie version)) 
+    (when domain    (.setDomain cookie domain))
+    (when http-only (.setHttpOnly cookie http-only))
+    (when secure    (.setSecure cookie secure))
+    (when comment   (.setComment cookie comment))
+    cookie))
+
+(defn add-cookie 
+  "set a cookie in the current response."
+  [cookie]
+  (.addCookie (get-response) cookie))
+
+(defn get-cookies 
+  "get all cookies from the current request."
+  []
+  (vec (.getCookies (get-request))))
+
+(defn ^Cookie get-cookie
+  "get a cookie by name from the current request"
+  [name]
+;;;  (println (map #(.getName %) (get-cookies)))
+  (first (filter #(= (.getName ^Cookie %) name) (get-cookies))))
+
+(defn get-cookie-value
+  "get the value of a named cookie from the current request"
+  [name]
+  (when-let [cookie (get-cookie name)]
+    (.getValue cookie))) 
+   
+     
+ ;; JavaScript
 
 (defn ^JavaScript get-js
   []
@@ -279,11 +329,6 @@
   (.addComponent component-container  component)
   component-container)
 
-(defn set-expand-ratio!
-  [^AbstractOrderedLayout layout component ratio]
-  (.setExpandRatio layout component (float ratio))
-  layout)
- 
 (defn set-content!
   "Set content of a panel (window)."
   [^Panel panel component]
@@ -617,6 +662,43 @@
      (add-components! v items) 
      v))
 
+(defn get-component
+  "Gets the component at the given index position"
+  [^AbstractOrderedLayout layout index]
+  (.getComponent layout index))
+
+(defn set-expand-ratio!
+  [^AbstractOrderedLayout layout component ratio]
+  (.setExpandRatio layout component (float ratio))
+  layout)
+ 
+(defn set-expand-ratio-at-index!
+  [^AbstractOrderedLayout layout index ratio]
+  (.setExpandRatio layout (get-component layout index) (float ratio))
+  layout)
+
+;; Alignment
+
+(defonce ALIGNMENT_TOP_RIGHT Alignment/TOP_RIGHT)
+(defonce ALIGNMENT_TOP_LEFT Alignment/TOP_LEFT)
+(defonce ALIGNMENT_TOP_CENTER Alignment/TOP_CENTER)
+(defonce ALIGNMENT_MIDDLE_RIGHT Alignment/MIDDLE_RIGHT)
+(defonce ALIGNMENT_MIDDLE_LEFT Alignment/MIDDLE_LEFT)
+(defonce ALIGNMENT_MIDDLE_CENTER Alignment/MIDDLE_CENTER)
+(defonce ALIGNMENT_BOTTOM_RIGHT Alignment/BOTTOM_RIGHT)
+(defonce ALIGNMENT_BOTTOM_LEFT Alignment/BOTTOM_LEFT)
+(defonce ALIGNMENT_BOTTOM_CENTER Alignment/BOTTOM_CENTER)
+
+(defn align!
+  [^AbstractOrderedLayout layout component alignment]
+  (.setComponentAlignment layout component alignment)
+  layout)
+
+(defn align-at-index!
+  [^AbstractOrderedLayout layout index alignment]
+  (.setComponentAlignment layout (get-component layout index) alignment)
+  layout)
+
 ;; Fields
 
 (defn set-input-prompt!
@@ -948,11 +1030,6 @@
 (def check-boxes option-group-multi)
 
 ;; Misc.
-
-(defn align!
-  [^AbstractOrderedLayout l  c  a]
-  (.setComponentAlignment l c a )
-  l)
 
 (defn print-current-page
   "Print the current web page."
