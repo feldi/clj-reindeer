@@ -487,9 +487,9 @@
 ;; Label
 
 ; content modes 
-(def content-mode-text ContentMode/TEXT)
-(def content-mode-preformatted ContentMode/PREFORMATTED)
-(def content-mode-html ContentMode/HTML)
+(defonce CONTENT-MODE-TEXT         ContentMode/TEXT)
+(defonce CONTENT-MODE-PREFORMATTED ContentMode/PREFORMATTED)
+(defonce CONTENT-MODE-HTML         ContentMode/HTML)
 
 (defn- set-content-mode!
    "Internal use only"
@@ -1124,10 +1124,10 @@
     (apply-options (Table. "") args)))
 
 ; Column Header Modes 
-(def column-header-mode-hidden Table$ColumnHeaderMode/HIDDEN)
-(def column-header-mode-id Table$ColumnHeaderMode/ID)
-(def column-header-mode-explicit Table$ColumnHeaderMode/EXPLICIT)
-(def column-header-mode-explicit-defaults-id Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID)
+(defonce COLUMN-HEADER-MODE-HIDDEN Table$ColumnHeaderMode/HIDDEN)
+(defonce COLUMN-HEADER-MODE-ID Table$ColumnHeaderMode/ID)
+(defonce COLUMN-HEADER-MODE-EXPLICIT Table$ColumnHeaderMode/EXPLICIT)
+(defonce COLUMN-HEADER-MODE-EXPLICIT-DEFAULTS-ID Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID)
 
 
 
