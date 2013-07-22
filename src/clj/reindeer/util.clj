@@ -13,7 +13,8 @@
     :doc "Reindeer utility functions"}
   clj.reindeer.util
   (:require clojure.string)
-  (:use [i18n.core])
+  (:use [i18n.core]
+        [clojure.set :only [map-invert]])
   (:import [java.net URL URI MalformedURLException URISyntaxException]
            [javax.servlet ServletContext]
            [com.vaadin.server VaadinSession DeploymentConfiguration]
@@ -198,4 +199,15 @@
   [^VaadinSession session param-name default-value]
   (-> session .getConfiguration 
                            (.getApplicationOrSystemProperty param-name default-value)))
+
+(defmacro def-constants-handler 
+  [name constants-map]
+  `(do 
+     (def ^{:private true} ~name ~constants-map)
+     (def ^{:private true} ~(symbol (str name "-invert"))  (map-invert ~constants-map))
+     (defn ~(symbol (str "get-constant-from-" name ))  
+       [k#] (get ~name k#))
+     (defn ~(symbol (str "get-key-from-" name ))  
+       [c#] (get (symbol (str name "-invert")) c#))
+     ))
 

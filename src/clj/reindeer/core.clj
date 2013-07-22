@@ -13,20 +13,21 @@
     :doc "A Clojure Vaadin bridge.
           This is still work in progress."}
   clj.reindeer.core
-  (:use [i18n.core :only [i18n-key? i18n]]
-         [clj.reindeer.util :only [illegal-argument to-seq check-args
-                                   constant-map
-                                   to-url try-cast
-                                   cond-doto to-mnemonic-keycode]]
-         [clj.reindeer.config :only [Configurable config* config!*]]
-         [clj.reindeer.options :only [ignore-option default-option bean-option
-                                      apply-options
-                                      option-map option-provider
-                                      get-option-value
-                                      options-for-class defwidget]]
-         [clj.reindeer.to-widget :only [ToWidget to-widget*]]
-         [clojure.tools.nrepl.server :only [start-server stop-server]]
-         )
+  (:use [clojure.set :only [map-invert]]
+        [i18n.core :only [i18n-key? i18n]]
+        [clj.reindeer.util :only [illegal-argument to-seq check-args
+                                  def-constants-handler
+                                  to-url try-cast
+                                  cond-doto to-mnemonic-keycode]]
+        [clj.reindeer.config :only [Configurable config* config!*]]
+        [clj.reindeer.options :only [ignore-option default-option bean-option
+                                     apply-options
+                                     option-map option-provider
+                                     get-option-value
+                                     options-for-class defwidget]]
+        [clj.reindeer.to-widget :only [ToWidget to-widget*]]
+        [clojure.tools.nrepl.server :only [start-server stop-server]]
+        )
    (:import [java.net 
              URL
              ] 
@@ -37,11 +38,10 @@
 	          [com.vaadin.ui
              UI
              JavaScript
-             AbstractOrderedLayout 
-             Component Component$Listener
-             ComponentContainer
+             AbstractOrderedLayout AbstractSelect
+             Component Component$Listener ComponentContainer
              AbstractComponent AbstractComponentContainer 
-             Panel Alignment
+             AbstractSingleComponentContainer Panel Alignment
              Window Window$CloseListener
              Label Button Button$ClickListener Button$ClickEvent
              NativeButton OptionGroup
@@ -150,7 +150,7 @@
     (when comment   (.setComment cookie comment))
     cookie))
 
-(defn add-cookie 
+(defn set-cookie 
   "set a cookie in the current response."
   [cookie]
   (.addCookie (get-response) cookie))
@@ -161,7 +161,7 @@
   (vec (.getCookies (get-request))))
 
 (defn ^Cookie get-cookie
-  "get a cookie by name from the current request"
+  "get cookie by name from the current request"
   [name]
 ;;;  (println (map #(.getName %) (get-cookies)))
   (first (filter #(= (.getName ^Cookie %) name) (get-cookies))))
@@ -529,22 +529,48 @@
     (default-option :value set-value! get-value ["value of field" ""])
    ))
 
+;; options of Vaadin super classes
+
+(def abstract-component-options
+  (options-for-class AbstractComponent))
+(def abstract-component-container-options
+  (options-for-class AbstractComponentContainer))
+(def abstract-field-options
+  (options-for-class AbstractField))
+(def abstract-text-field-options
+  (options-for-class AbstractTextField))
+(def abstract-ordered-layout-options
+  (options-for-class AbstractOrderedLayout))
+(def abstract-single-component-container-options
+  (options-for-class AbstractSingleComponentContainer))
+(def abstract-select-options
+  (options-for-class AbstractSelect))
+(def panel-options
+  (options-for-class Panel))
+(def window-options
+  (options-for-class Window))
+
+;interfaces
+;;; Focusable etc
+
 ;; Label
 
 ; content modes 
-(defonce CONTENT-MODE-TEXT         ContentMode/TEXT)
-(defonce CONTENT-MODE-PREFORMATTED ContentMode/PREFORMATTED)
-(defonce CONTENT-MODE-HTML         ContentMode/HTML)
+(def-constants-handler content-modes {
+   :text         ContentMode/TEXT
+   :preformatted ContentMode/PREFORMATTED
+   :html         ContentMode/HTML
+   })
 
 (defn- set-content-mode!
    "Internal use only"
-  [^Label lbl ^ContentMode mode]
-  (.setContentMode lbl mode))
+  [^Label lbl mode]
+  (.setContentMode lbl (get-constant-from-content-modes mode)))
 
 (defn- get-content-mode
   "Internal use only"
   [^Label lbl]
-  (.getContentMode lbl))
+  (get-key-from-content-modes (.getContentMode lbl)))
 
 ;; Label isnt an AbstractField!, so this specialty is needed 
 (defn- set-label-value!
@@ -655,10 +681,11 @@
 (defn ^VerticalLayout v-l
   [& {:keys [items spacing margin-all width height style-name] } ]
    (let [v (VerticalLayout.)]
-     (when spacing (.setSpacing v spacing))
-     (when margin-all (.setMargin v ^boolean margin-all))
      (when width (.setWidth v width))
      (when height (.setHeight v height))
+     (when spacing (.setSpacing v spacing))
+     (when margin-all (.setMargin v ^boolean margin-all))
+     (when style-name (.addStyleName v style-name))
      (add-components! v items) 
      v))
 
@@ -1048,7 +1075,7 @@
   [msg]
   (UserError. msg))
 
-;; Properties and Items
+;; Properties
 
 (defn object-property 
   "create a new object property."
@@ -1062,6 +1089,8 @@
 (defn get-property-value
   [^Property prop]
   (.getValue prop))
+
+;; Items
 
 (defn item-click-listener
   [func]
@@ -1101,7 +1130,7 @@
   (doseq [[pid value] pid-and-values]
     (set-item-property-value item pid value)))
 
-;; Container
+;; Containers
 
 (defn add-container-property!
   [^Container container property-id type default-value]
@@ -1144,15 +1173,29 @@
 
 ;; Table
 
+; Column Header Modes 
+(def-constants-handler column-header-modes {
+   :hidden      Table$ColumnHeaderMode/HIDDEN
+   :id          Table$ColumnHeaderMode/ID
+   :explicit    Table$ColumnHeaderMode/EXPLICIT
+   :defaults-id Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID
+   }) 
+
+(defn- set-column-header-mode!
+   "Internal use only"
+  [^Table tbl mode]
+  (.setColumnHeaderMode tbl (get-constant-from-column-header-modes mode)))
+
+(defn- get-column-header-mode
+   "Internal use only"
+  [^Table tbl]
+  (get-key-from-column-header-modes (.getColumnHeaderMode tbl)))
+
 (defn- set-item-click-listener!
    "Internal use only"
   [^Table tbl func]
   (.addItemClickListener tbl (item-click-listener func)))
 
-(defn- set-column-header-mode!
-   "Internal use only"
-  [^Table tbl mode]
-  (.setColumnHeaderMode tbl mode))
 
 (defn- set-selectable!
    "Internal use only"
@@ -1184,7 +1227,7 @@
     default-options
     (option-map
         (default-option :on-item-click set-item-click-listener! nil ["" ""])
-        (default-option :column-header-mode set-column-header-mode! nil ["" ""])
+        (default-option :column-header-mode set-column-header-mode! get-column-header-mode ["" ""])
         (default-option :striped? set-striped! nil ["" ""])
         (default-option :selectable? set-selectable! is-selectable? ["" ""])
         (default-option :container-datasource set-container-datasource! nil ["" ""])
@@ -1199,12 +1242,5 @@
     0 (table :caption "")
     1 (table :caption (first args))
     (apply-options (Table. "") args)))
-
-; Column Header Modes 
-(defonce COLUMN-HEADER-MODE-HIDDEN Table$ColumnHeaderMode/HIDDEN)
-(defonce COLUMN-HEADER-MODE-ID Table$ColumnHeaderMode/ID)
-(defonce COLUMN-HEADER-MODE-EXPLICIT Table$ColumnHeaderMode/EXPLICIT)
-(defonce COLUMN-HEADER-MODE-EXPLICIT-DEFAULTS-ID Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID)
-
 
 

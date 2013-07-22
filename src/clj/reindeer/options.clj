@@ -208,7 +208,7 @@
 
 (defn get-public-instance-methods [class]
   (->> class
-    .getDeclaredMethods
+    .getDeclaredMethods ; oder besser: getMethods ? -> dann auch die der Oberklassen
     (remove #(.isSynthetic %))
     (filter #(let [ms (.getModifiers %)]
                (= java.lang.reflect.Modifier/PUBLIC

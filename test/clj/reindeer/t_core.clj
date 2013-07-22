@@ -50,7 +50,7 @@
   
 (facts "about labels"
   (fact "it has the right caption"
-    (let [l (label "Caption")]
+    (let [l (label :caption "Caption")]
       (.getCaption l) => "Caption")))
 
 (facts "about buttons"
@@ -94,11 +94,11 @@
 (facts "about fields"
   (fact "it sets the value"
     (let [f (TextField.)]
-      (set-value! f "foo") => irrelevant
-      (get-value f) => "foo"))
+      (config! f :value "foo") => irrelevant
+      (config f :value) => "foo"))
   (fact "it listens to value changes"
     (let [f (text-field :change-listener test-listen!)]
-      (set-value! f "bar") => irrelevant
+      (config! f :value "bar") => irrelevant
       (deref listener-called) => true)))
 
 (facts "about links"
