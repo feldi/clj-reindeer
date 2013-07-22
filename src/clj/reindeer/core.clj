@@ -14,12 +14,12 @@
           This is still work in progress."}
   clj.reindeer.core
   (:use [clojure.set :only [map-invert]]
-        [i18n.core :only [i18n-key? i18n]]
+        [i18n.core   :only [i18n-key? i18n]]
         [clj.reindeer.util :only [illegal-argument to-seq check-args
                                   def-constants-handler
                                   to-url try-cast
                                   cond-doto to-mnemonic-keycode]]
-        [clj.reindeer.config :only [Configurable config* config!*]]
+        [clj.reindeer.config  :only [Configurable config* config!*]]
         [clj.reindeer.options :only [ignore-option default-option bean-option
                                      apply-options
                                      option-map option-provider
@@ -28,15 +28,12 @@
         [clj.reindeer.to-widget :only [ToWidget to-widget*]]
         [clojure.tools.nrepl.server :only [start-server stop-server]])
    (:import [java.net 
-             URL
-             ] 
+             URL] 
             [javax.servlet.http 
              HttpServletRequest HttpServletResponse
-             Cookie
-             ]
+             Cookie]
 	          [com.vaadin.ui
-             UI
-             JavaScript
+             UI JavaScript
              AbstractOrderedLayout AbstractSelect
              Component Component$Listener ComponentContainer
              AbstractComponent AbstractComponentContainer 
@@ -49,14 +46,12 @@
              DateField InlineDateField PopupDateField
              Link Embedded CheckBox
              Notification Notification$Type
-             Table Table$ColumnHeaderMode
-             ]
+             Table Table$ColumnHeaderMode]
             [com.vaadin.server
              VaadinSession WrappedSession VaadinService Page
              VaadinRequest VaadinResponse
              Resource ExternalResource ClassResource ThemeResource
-             UserError
-             ]
+             UserError]
             [com.vaadin.event
              FieldEvents$TextChangeListener FieldEvents$TextChangeEvent
              ItemClickEvent ItemClickEvent$ItemClickListener]
