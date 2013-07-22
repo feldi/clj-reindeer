@@ -26,8 +26,7 @@
                                      get-option-value
                                      options-for-class defwidget]]
         [clj.reindeer.to-widget :only [ToWidget to-widget*]]
-        [clojure.tools.nrepl.server :only [start-server stop-server]]
-        )
+        [clojure.tools.nrepl.server :only [start-server stop-server]])
    (:import [java.net 
              URL
              ] 
@@ -67,14 +66,11 @@
              Property Property$ValueChangeListener
              Item Container]
             [com.vaadin.data.util
-             ObjectProperty IndexedContainer]
-   )
-)
+             ObjectProperty IndexedContainer]))
 
 (defn reload []
   "Helper for easy development at the REPL."
-   (use 'clj.reindeer.core :reload-all)
-  )
+   (use 'clj.reindeer.core :reload-all))
 
 ; this is NOT a pure Clojure project, but heavy Java related,
 ; so it should run as fast as Java if possible! 
@@ -98,32 +94,25 @@
 
 ;; some useful getters for Vaadin application lifecycle stuff
 
-(defn ^UI get-ui
-  []
+(defn ^UI get-ui []
  (UI/getCurrent))
 
-(defn ^Page get-page
-  []
+(defn ^Page get-page []
   (Page/getCurrent))
 
-(defn ^VaadinSession get-session
-  []
+(defn ^VaadinSession get-session []
   (VaadinSession/getCurrent))
 
-(defn ^WrappedSession get-wrapped-session
-  []
+(defn ^WrappedSession get-wrapped-session []
   (.getSession (get-session)))
 
-(defn ^VaadinService get-service
-  []
+(defn ^VaadinService get-service []
   (VaadinService/getCurrent))
 
-(defn ^VaadinRequest get-request
-  []
+(defn ^VaadinRequest get-request []
   (VaadinService/getCurrentRequest))
 
-(defn ^VaadinResponse get-response
-  []
+(defn ^VaadinResponse get-response []
   (VaadinService/getCurrentResponse))
 
 ;; Cookies
@@ -175,12 +164,10 @@
      
  ;; JavaScript
 
-(defn ^JavaScript get-js
-  []
+(defn ^JavaScript get-js []
   (JavaScript/getCurrent))
 
-(defn execute-js
-  [js-code]
+(defn execute-js [js-code]
   (.execute (get-js) js-code))
 
 
@@ -188,8 +175,7 @@
 
 (defn set-ui-content!
   [^Component c]
-  (.setContent ^UI (get-ui) c)
-  )
+  (.setContent ^UI (get-ui) c))
 
 (defn get-ui-content
   []
@@ -209,8 +195,7 @@
      (set-ui-content! content))
    
    (when error-handler
-     (.setErrorHandler (get-ui) error-handler))
-)
+     (.setErrorHandler (get-ui) error-handler)))
 
 (defn access-ui
   "Provide exclusive access to the UI from outside a request handling thread."
@@ -285,8 +270,7 @@
 ;    ))
 ;
 
-(defn get-locale
-  []
+(defn get-locale []
   (.getLocale (get-ui)))
 
 (defn ^Window window
@@ -323,7 +307,6 @@
       (ExternalResource. url)
       (or target "_blank")))
 
-
 (defn add!
   [^AbstractComponentContainer component-container component]
   (.addComponent component-container  component)
@@ -335,12 +318,11 @@
   (.setContent panel component)
   panel)
 
+
 ;; Resource handling
 
-(defn ^ThemeResource theme-res 
-  [path]
-  (ThemeResource. path)
-  )
+(defn ^ThemeResource theme-res [path]
+  (ThemeResource. path))
 
 (defn ^ClassResource class-res 
   [path & {:keys [buffer-size cache-time] } ] 
@@ -378,8 +360,7 @@
   (set-icon!* [this r])
   (get-icon* [this])
   (set-immediate!* [this v])
-  (is-immediate?* [this])
-)
+  (is-immediate?* [this]))
 
 (extend-protocol ConfigAbstractComponent
  
@@ -397,25 +378,21 @@
     (set-icon!* [this r] (.setIcon this ^Resource r))
     (get-icon* [this] (.getIcon this))
     (set-immediate!* [this v] (.setImmediate this v))
-    (is-immediate?* [this] (.isImmediate this))
-  )
+    (is-immediate?* [this] (.isImmediate this))  )
 
 (defprotocol ConfigAbstractField
   "Protocol to hook into AbstractField"
   (set-value!* [this v])
-  (get-value* [this])
-)
+  (get-value* [this]))
 
 (extend-protocol ConfigAbstractField
  
   com.vaadin.ui.AbstractField
     (set-value!* [this v] (.setValue this v))
-    (get-value* [this] (.getValue this))
-  )
+    (get-value* [this] (.getValue this)))
 
 
-(defn- ^String convert-text-value
-  [v]
+(defn- ^String convert-text-value [v]
   (cond
     (nil? v)      v
     (string? v)   v
@@ -504,12 +481,10 @@
   [this]
   (get-value* this))
 
-
 (defn listen!
   [^AbstractComponent c 
    ^Component$Listener l]
-  (.addListener c l)
-)
+  (.addListener c l))
 
 (def default-options
   (option-map
@@ -521,13 +496,11 @@
     (default-option :data set-data! get-data ["Anything." "Associate arbitrary user-data with a widget."])
     (default-option :width set-width! get-width ["A string" "A width as string, e.g in percent"])
     (default-option :height set-height! get-height ["A string" "A height as string, e.g in percent"])
-    (default-option :immediate? set-immediate! is-immediate? ["immediate" ""])
-   ))
+    (default-option :immediate? set-immediate! is-immediate? ["immediate" ""])))
 
 (def default-field-options
   (option-map
-    (default-option :value set-value! get-value ["value of field" ""])
-   ))
+    (default-option :value set-value! get-value ["value of field" ""])))
 
 ;; options of Vaadin super classes
 
@@ -588,8 +561,7 @@
     default-options
     (option-map
         (default-option :content-mode set-content-mode! get-content-mode ["content mode" ""])
-        (default-option :value set-label-value! get-label-value ["value" ""])
-      )))
+        (default-option :value set-label-value! get-label-value ["value" ""]))))
 
 (option-provider Label label-options)
 
@@ -606,8 +578,7 @@
   (let [^Label gap (Label. "&nbsp;" ContentMode/HTML )]
     (when height (.setHeight gap ^String height))
     (when width  (.setWidth  gap ^String width))
-    gap)
-  )
+    gap))
 
 (defn h-gap 
   "Horizontal, expanding spacer."
@@ -617,8 +588,7 @@
     (when height (.setHeight gap ^String height))
     (add! layout gap)
     (set-expand-ratio! layout gap 1.0)
-    gap)
-  )
+    gap))
 
 ;; Button
 
@@ -627,15 +597,14 @@
   (.addListener btn
     (reify Button$ClickListener
 	    (buttonClick [this event]
-        (func event)
-      ))))
+        (func event)))))
 
 (def button-options
   (merge
     default-options
     (option-map
-      (default-option :on-click set-button-click-listener! nil ["A button click listener." ""])
-      )))
+      (default-option :on-click set-button-click-listener!
+        nil ["A button click listener." ""]))))
 
 (option-provider Button button-options)
 
@@ -644,16 +613,14 @@
    (case (count args)
     0 (button :caption "")
     1 (button :caption (first args))
-    (apply-options (Button. "") args))
-)
+    (apply-options (Button. "") args)))
 
 (defn ^NativeButton native-button
   [& args ]
    (case (count args)
     0 (native-button :caption "")
     1 (native-button :caption (first args))
-    (apply-options (NativeButton. "") args))
-)
+    (apply-options (NativeButton. "") args)))
 
 ;; Layouts
 
@@ -664,8 +631,7 @@
        (nil? item) nil
        ;; make strings to labels 'on the fly'
        (string? item) (add! container (label :value item))
-       :else (add! container item))
-       ))
+       :else (add! container item))))
 
 (defn ^HorizontalLayout h-l
   [& {:keys [items spacing margin-all width height style-name] } ]
@@ -730,24 +696,21 @@
 
 (defn set-input-prompt!
   [^AbstractTextField tf ^String prompt]
-  (.setInputPrompt tf prompt )
-  )
+  (.setInputPrompt tf prompt))
 
 (defn- set-value-change-listener!
   [^AbstractField af func]
   (.addListener af
     (reify Property$ValueChangeListener
 	    (valueChange [this event]
-        (func event)
-      ))))
+        (func event)))))
 
 (defn- set-text-change-listener!
   [^TextField tf func]
   (.addListener tf
     (reify FieldEvents$TextChangeListener
 	    (textChange [this event]
-        (func event))
-     )))
+        (func event)))))
 
 (defwidget text-field TextField
   [default-options default-field-options]
@@ -814,16 +777,13 @@
 
 ;; Notifications
 
-(defn alert
-  [msg]
-  (Notification/show (convert-text-value msg))
-  )
+(defn alert [msg]
+  (Notification/show (convert-text-value msg)))
 
 (defn show-notification
   "Generic show method."
   [caption msg type]
-  (Notification/show caption msg type)
-    )
+  (Notification/show caption msg type))
 
 (defn show
   "Shows humanized message."
@@ -852,8 +812,7 @@
 ; TODO implement Notification with options
 (defn create-notification
   [caption msg type]
-  (Notification. caption msg type)
-  )
+  (Notification. caption msg type))
 
 ;; Link 
 
@@ -872,8 +831,7 @@
     default-options
     (option-map
       (default-option :resource set-resource! nil ["resource" ""])
-      (default-option :target-name set-target-name! nil ["target name" ""])
-      )))
+      (default-option :target-name set-target-name! nil ["target name" ""]))))
 
 (option-provider Link link-options)
 
@@ -1022,16 +980,14 @@
   [^Component c 
    ^String n]
   (.addStyleName c n)
-  c
-)
+  c)
 
 (defn remove-style-name
   "Removes a named css style from a component." 
   [^Component c 
    ^String n]
   (.removeStyleName c n)
-  c
-)
+  c)
 
 (defn ^OptionGroup option-group
   "Gruped radio buttons." 
@@ -1067,8 +1023,7 @@
   "A convenient 'print-this-page' button."
   [caption]
   (button :caption  (convert-text-value (or caption "Print"))
-          :on-click (fn [_] (print-current-page)))
-  )
+          :on-click (fn [_] (print-current-page))))
 
 (defn user-error 
   "create an error message."
@@ -1096,8 +1051,7 @@
   [func]
   (reify ItemClickEvent$ItemClickListener
     (itemClick [this event]
-      (func event)
-      )))
+      (func event))))
 
 (defn get-item-from-item-click-event
   [^ItemClickEvent evt]
@@ -1163,8 +1117,7 @@
                      (IndexedContainer. item-ids)
                      (IndexedContainer.))]
      (when properties
-       (add-container-properties container properties) 
-       )
+       (add-container-properties container properties))
      container))
 
 
@@ -1196,7 +1149,6 @@
   [^Table tbl func]
   (.addItemClickListener tbl (item-click-listener func)))
 
-
 (defn- set-selectable!
    "Internal use only"
   [^Table tbl state]
@@ -1219,8 +1171,7 @@
   [^Table tbl striped?]
   (if striped?
     (.addStyleName tbl "striped")
-    (.removeStyleName tbl "striped")) 
-  )
+    (.removeStyleName tbl "striped")))
 
 (def table-options
   (merge
@@ -1231,8 +1182,7 @@
         (default-option :striped? set-striped! nil ["" ""])
         (default-option :selectable? set-selectable! is-selectable? ["" ""])
         (default-option :container-datasource set-container-datasource! nil ["" ""])
-        (default-option :visible-columns set-visible-columns! nil ["" ""])
-      )))
+        (default-option :visible-columns set-visible-columns! nil ["" ""]))))
 
 (option-provider Table table-options)
 
