@@ -15,26 +15,44 @@
   (:use [clj.reindeer.util])
   (:gen-class
    :extends com.vaadin.server.VaadinServlet
-   :name clj.reindeer.ReindeerServlet))
+   :name clj.reindeer.ReindeerServlet)
+  (:import [com.vaadin.shared.communication
+            PushMode]
+           [com.vaadin.shared.ui.ui
+            Transport]
+           [com.vaadin.server 
+            UIClassSelectionEvent]))
 
 (defn- create-reindeer-ui-provider 
-  "Helper: creates an UIProvider with the ability to override the theme name and widget set."
+  "Helper: creates an UIProvider with the ability to override 
+   the configuration of theme, widget set etc."
   [^com.vaadin.server.SessionInitEvent siEvent]
    (proxy [com.vaadin.server.DefaultUIProvider] [] 
-        (getTheme 
-          [^com.vaadin.server.UICreateEvent crtEvent]
-          (get-vaadin-param (.getSession siEvent) "themeName" "reindeer")) ;; reindeer is default theme
-         (getWidgetset 
-          [^com.vaadin.server.UICreateEvent crtEvent]
-          (get-vaadin-param (.getSession siEvent) "widgetset" nil))))
+     (getTheme [^com.vaadin.server.UICreateEvent crtEvent]
+       (get-vaadin-param (.getSession siEvent) "themeName" "reindeer")) ;; reindeer is default theme
+     (getWidgetset [^com.vaadin.server.UICreateEvent crtEvent]
+       (get-vaadin-param (.getSession siEvent) "widgetset" nil))
+     (getPageTitle [^com.vaadin.server.UICreateEvent crtEvent]
+       (get-vaadin-param (.getSession siEvent) "pageTitle" ""))
+     (isPreservedOnRefresh [^com.vaadin.server.UICreateEvent crtEvent]
+       (Boolean/parseBoolean (get-vaadin-param (.getSession siEvent) "preserveOnRefresh" "false")))
+   (getPushMode [^com.vaadin.server.UICreateEvent crtEvent]
+       (PushMode/valueOf (get-vaadin-param (.getSession siEvent) "pushMode" "DISABLED")))
+   (getPushTransport [^com.vaadin.server.UICreateEvent crtEvent]
+       (Transport/valueOf (get-vaadin-param (.getSession siEvent) "pushTransport" "WEBSOCKET")))
+     
+   (getUIClass [^UIClassSelectionEvent selEvent]
+     (if-let [uiname (get-vaadin-param (.getSession siEvent) "UIClassName" nil)] 
+       (Class/forName uiname) 
+       (proxy-super getUIClass selEvent)))))
 
 (defn- create-session-init-listener
   "Helper: creates a vaadin session init listener with the new ui provider."
   []
   (reify com.vaadin.server.SessionInitListener
-     (^void sessionInit
-            [this ^com.vaadin.server.SessionInitEvent siEvent]
-            (-> siEvent .getSession (.addUIProvider (create-reindeer-ui-provider siEvent))))))
+    (^void sessionInit
+      [this ^com.vaadin.server.SessionInitEvent siEvent]
+      (-> siEvent .getSession (.addUIProvider (create-reindeer-ui-provider siEvent))))))
 
 (defn -servletInitialized
   "Called automatically by Vaadin when the servlet is ready."

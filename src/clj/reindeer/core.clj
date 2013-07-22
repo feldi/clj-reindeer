@@ -500,23 +500,39 @@
 ;; options of Vaadin super classes
 
 (def abstract-component-options
-  (options-for-class AbstractComponent))
+  (option-map (options-for-class AbstractComponent)))
+
 (def abstract-component-container-options
-  (options-for-class AbstractComponentContainer))
+  (merge abstract-component-options
+         (option-map (options-for-class AbstractComponentContainer))))
+
 (def abstract-field-options
-  (options-for-class AbstractField))
+  (merge abstract-component-options
+         (option-map (options-for-class AbstractField))))
+
 (def abstract-text-field-options
-  (options-for-class AbstractTextField))
+  (merge abstract-field-options
+         (option-map (options-for-class AbstractTextField))))
+
 (def abstract-ordered-layout-options
-  (options-for-class AbstractOrderedLayout))
+  (merge abstract-component-container-options
+         (option-map (options-for-class AbstractOrderedLayout))))
+
 (def abstract-single-component-container-options
-  (options-for-class AbstractSingleComponentContainer))
+  (merge abstract-component-options
+         (option-map (options-for-class AbstractSingleComponentContainer))))
+
 (def abstract-select-options
-  (options-for-class AbstractSelect))
+  (merge abstract-field-options
+         (option-map (options-for-class AbstractSelect))))
+
 (def panel-options
-  (options-for-class Panel))
+  (merge abstract-single-component-container-options
+         (option-map (options-for-class Panel))))
+
 (def window-options
-  (options-for-class Window))
+  (merge panel-options
+         (option-map (options-for-class Window))))
 
 ;interfaces
 ;;; Focusable etc
