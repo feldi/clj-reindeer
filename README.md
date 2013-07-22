@@ -4,8 +4,8 @@ Clojure Vaadin 7 bridge library.
 
 Get the best of two worlds together!
 
-This is just the start. Many interesting things are still missing.
-But watch out, as it will be added!
+This is just the beginning. Many interesting things are still missing.
+But watch out, as more features will be added!
 
 ## Usage
 
