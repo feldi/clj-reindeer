@@ -33,7 +33,7 @@
              HttpServletRequest HttpServletResponse
              Cookie]
 	          [com.vaadin.ui
-             UI JavaScript
+             UI JavaScript PushConfiguration 
              AbstractOrderedLayout AbstractSelect
              Component Component$Listener ComponentContainer
              AbstractComponent AbstractComponentContainer 
@@ -110,6 +110,28 @@
 (defn ^VaadinResponse get-response []
   (VaadinService/getCurrentResponse))
 
+
+;; Server Push 
+
+(defn enable-automatic-push
+  []
+  (-> (get-ui) (.getPushConfiguration) 
+    (.setPushMode com.vaadin.shared.communication.PushMode/AUTOMATIC)))
+
+(defn enable-manual-push
+  []
+  (-> (get-ui) (.getPushConfiguration)
+    (.setPushMode com.vaadin.shared.communication.PushMode/MANUAL)))
+
+(defn disable-push
+  []
+  (-> (get-ui) (.getPushConfiguration)
+    (.setPushMode com.vaadin.shared.communication.PushMode/DISABLED)))
+
+(defn push-ui 
+  []
+  (.push (get-ui)))
+
 ;; Cookies
 
 (defn cookie 
@@ -180,6 +202,7 @@
   [& {:keys [
              title
              content
+             push-mode
              error-handler
             ]}]
    
@@ -188,6 +211,12 @@
    
    (when content
      (set-ui-content! content))
+   (when push-mode
+     (case push-mode
+       :automatic (enable-automatic-push)
+       :manual    (enable-manual-push)
+       :disabled  (disable-push)) 
+    )
    
    (when error-handler
      (.setErrorHandler (get-ui) error-handler)))
@@ -1034,7 +1063,8 @@
   "A convenient 'print-this-page' button."
   [caption]
   (button :caption  (convert-text-value (or caption "Print"))
-          :on-click (fn [_] (print-current-page))))
+          :on-click (fn [_] (print-current-page))
+          ))
 
 (defn user-error 
   "create an error message."
