@@ -128,7 +128,18 @@
   (-> (get-ui) (.getPushConfiguration)
     (.setPushMode com.vaadin.shared.communication.PushMode/DISABLED)))
 
-(defn push-ui 
+(defn config-websocket-push
+  []
+  (-> (get-ui) (.getPushConfiguration) 
+    (.setTransport com.vaadin.shared.ui.ui.Transport/WEBSOCKET)))
+
+(defn config-streaming-push
+  []
+  (-> (get-ui) (.getPushConfiguration) 
+    (.setTransport com.vaadin.shared.ui.ui.Transport/STREAMING)))
+
+
+(defn push-to-ui 
   []
   (.push (get-ui)))
 
@@ -203,42 +214,49 @@
              title
              content
              push-mode
+             push-transport
              error-handler
             ]}]
-   
-    (when title
-     (.setTitle (get-page) title))
-   
-   (when content
-     (set-ui-content! content))
-   (when push-mode
-     (case push-mode
-       :automatic (enable-automatic-push)
-       :manual    (enable-manual-push)
-       :disabled  (disable-push)) 
-    )
-   
-   (when error-handler
-     (.setErrorHandler (get-ui) error-handler)))
+  (when title
+    (.setTitle (get-page) title))
+  (when content
+    (set-ui-content! content))
+  (when push-mode
+    (case push-mode
+      :automatic (enable-automatic-push)
+      :manual    (enable-manual-push)
+      :disabled  (disable-push))) 
+  (when push-transport
+    (case push-transport
+      :websocket (config-websocket-push)
+      :streaming (config-streaming-push)))
+  (when error-handler
+    (.setErrorHandler (get-ui) error-handler)))
 
 (defn access-ui
   "Provide exclusive access to the UI from outside a request handling thread."
   [runnable]
   (.access (get-ui) runnable))
+ 
+(defn close-ui
+  "Close the current UI"
+  [& redirect-url]
+  (when redirect-url 
+    (.setLocation (get-page) ^String redirect-url))
+  (.close (get-ui)))
 
 (defn close-session
   "Close the session, destroy UIs."
-  [^String redirect-url]
-  (.setLocation (get-page) redirect-url)
-  ;; needed ?? (.close (get-ui))
+  [& redirect-url]
+  (when redirect-url 
+    (.setLocation (get-page)  ^String redirect-url))
   (.close (get-session))
   ;; needed ?? (.invalidate (get-wrapped-session))
   )
 
 
 ;; TODO def-ui 
-
-;(defn defapplication
+;;(defn defapplication
 ;  [& {:keys [main-theme
 ;             init-fn
 ;             close-fn
@@ -296,23 +314,22 @@
 
 (defn get-locale []
   (.getLocale (get-ui)))
-
-(defn ^Window window
-  [& {:keys [title closable? draggable? modal? resizable? resizeLazy? 
-             height width position-x position-y 
-             items] } ] 
-  (let [win (Window. (or title "TODO: set title"))]
-    (when closable?   (.setClosable    win closable?))  
-    (when draggable?  (.setDraggable   win draggable?))
-    (when modal?      (.setModal       win modal?))
-    (when resizable?  (.setResizable   win resizable?))
-    (when resizeLazy? (.setResizeLazy  win resizeLazy?))
-    (when height      (.setHeight      win ^String height))
-    (when width       (.setWidth       win ^String width))
-    (when position-x  (.setPositionX   win position-x))
-    (when position-y  (.setPositionY   win position-y))
-    (add-components! win items)
-    win))
+(defn ^Window window
+   [& {:keys [title closable? draggable? modal? resizable? resizeLazy? 
+              height width position-x position-y 
+              items] } ] 
+   (let [win (Window. (or title "TODO: set title"))]
+     (when closable?   (.setClosable    win closable?))  
+     (when draggable?  (.setDraggable   win draggable?))
+     (when modal?      (.setModal       win modal?))
+     (when resizable?  (.setResizable   win resizable?))
+     (when resizeLazy? (.setResizeLazy  win resizeLazy?))
+     (when height      (.setHeight      win ^String height))
+     (when width       (.setWidth       win ^String width))
+     (when position-x  (.setPositionX   win position-x))
+     (when position-y  (.setPositionY   win position-y))
+     (add-components! win items)
+     win))
 
 (defn add-window!
   "Adds and opens a sub window." 
@@ -328,13 +345,12 @@
   "open a url on a new HTML target browser window or tab."
   [^URL url & target]
   (.open (get-page)
-      (ExternalResource. url)
-      (or target "_blank")))
-
-(defn add!
-  [^AbstractComponentContainer component-container component]
-  (.addComponent component-container  component)
-  component-container)
+    (ExternalResource. url)
+    (or target "_blank")))
+(defn add!
+   [^AbstractComponentContainer component-container component]
+   (.addComponent component-container  component)
+   component-container)
 
 (defn set-content!
   "Set content of a panel (window)."
@@ -342,18 +358,16 @@
   (.setContent panel component)
   panel)
 
-
-;; Resource handling
-
-(defn ^ThemeResource theme-res [path]
-  (ThemeResource. path))
+;; Resource handling
+(defn ^ThemeResource theme-res [path]
+   (ThemeResource. path))
 
 (defn ^ClassResource class-res 
   [path & {:keys [buffer-size cache-time] } ] 
   (let [res (ClassResource. path (get-ui))]
     (when buffer-size (.setBufferSize res buffer-size))
     (when cache-time (.setCacheTime   res cache-time))
-  res))
+    res))
 
 (defn ^ExternalResource external-resource 
   [^String path]
@@ -362,8 +376,7 @@
 (defn ^ExternalResource external-resource-by-url 
   [^URL url]
   (ExternalResource. url))
-
-; TODO StreamResource and StreamSource
+; TODO StreamResource and StreamSource
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -387,22 +400,22 @@
   (is-immediate?* [this]))
 
 (extend-protocol ConfigAbstractComponent
- 
+  
   com.vaadin.ui.AbstractComponent
-    (set-caption!* [this v] (.setCaption this v))
-    (get-caption* [this] (.getCaption this))
-    (set-data!* [this v] (.setData this v))
-    (get-data* [this] (.getData this))
-    (set-description!* [this v] (.setDescription this v))
-    (get-description* [this] (.getDescription this))
-    (set-width!* [this v] (.setWidth this ^String v))
-    (get-width* [this] (.getWidth this))
-    (set-height!* [this v] (.setHeight this ^String v))
-    (get-height* [this] (.getHeight this))
-    (set-icon!* [this r] (.setIcon this ^Resource r))
-    (get-icon* [this] (.getIcon this))
-    (set-immediate!* [this v] (.setImmediate this v))
-    (is-immediate?* [this] (.isImmediate this))  )
+  (set-caption!* [this v] (.setCaption this v))
+  (get-caption* [this] (.getCaption this))
+  (set-data!* [this v] (.setData this v))
+  (get-data* [this] (.getData this))
+  (set-description!* [this v] (.setDescription this v))
+  (get-description* [this] (.getDescription this))
+  (set-width!* [this v] (.setWidth this ^String v))
+  (get-width* [this] (.getWidth this))
+  (set-height!* [this v] (.setHeight this ^String v))
+  (get-height* [this] (.getHeight this))
+  (set-icon!* [this r] (.setIcon this ^Resource r))
+  (get-icon* [this] (.getIcon this))
+  (set-immediate!* [this v] (.setImmediate this v))
+  (is-immediate?* [this] (.isImmediate this))  )
 
 (defprotocol ConfigAbstractField
   "Protocol to hook into AbstractField"
@@ -410,10 +423,10 @@
   (get-value* [this]))
 
 (extend-protocol ConfigAbstractField
- 
+  
   com.vaadin.ui.AbstractField
-    (set-value!* [this v] (.setValue this v))
-    (get-value* [this] (.getValue this)))
+  (set-value!* [this v] (.setValue this v))
+  (get-value* [this] (.getValue this)))
 
 
 (defn- ^String convert-text-value [v]
@@ -479,11 +492,10 @@
   "Internal use only"
   [this r]
   (set-icon!* this (theme-res r)))
-
-(defn- get-icon
-  "Internal use only"
-  [this]
-  (get-icon* this))
+(defn- get-icon
+   "Internal use only"
+   [this]
+   (get-icon* this))
 
 (defn- set-immediate!
   "Internal use only"
@@ -570,13 +582,13 @@
 
 ; content modes 
 (def-constants-handler content-modes {
-   :text         ContentMode/TEXT
-   :preformatted ContentMode/PREFORMATTED
-   :html         ContentMode/HTML
-   })
+                                      :text         ContentMode/TEXT
+                                      :preformatted ContentMode/PREFORMATTED
+                                      :html         ContentMode/HTML
+                                      })
 
 (defn- set-content-mode!
-   "Internal use only"
+  "Internal use only"
   [^Label lbl mode]
   (.setContentMode lbl (get-constant-from-content-modes mode)))
 
@@ -587,7 +599,7 @@
 
 ;; Label isnt an AbstractField!, so this specialty is needed 
 (defn- set-label-value!
-   "Internal use only"
+  "Internal use only"
   [^Label lbl ^String v]
   (.setValue lbl v))
 
@@ -600,8 +612,8 @@
   (merge
     default-options
     (option-map
-        (default-option :content-mode set-content-mode! get-content-mode ["content mode" ""])
-        (default-option :value set-label-value! get-label-value ["value" ""]))))
+      (default-option :content-mode set-content-mode! get-content-mode ["content mode" ""])
+      (default-option :value set-label-value! get-label-value ["value" ""]))))
 
 (option-provider Label label-options)
 
@@ -611,14 +623,13 @@
     0 (label :value "")
     1 (label :value (first args))
     (apply-options (Label. "") args)))
-
-(defn v-gap 
-  "Vertical spacer with optional height and width."
-  [& {:keys [height width] } ]
-  (let [^Label gap (Label. "&nbsp;" ContentMode/HTML )]
-    (when height (.setHeight gap ^String height))
-    (when width  (.setWidth  gap ^String width))
-    gap))
+(defn v-gap 
+   "Vertical spacer with optional height and width."
+   [& {:keys [height width] } ]
+   (let [^Label gap (Label. "&nbsp;" ContentMode/HTML )]
+     (when height (.setHeight gap ^String height))
+     (when width  (.setWidth  gap ^String width))
+     gap))
 
 (defn h-gap 
   "Horizontal, expanding spacer."
@@ -636,7 +647,7 @@
   [^Button btn func]
   (.addListener btn
     (reify Button$ClickListener
-	    (buttonClick [this event]
+      (buttonClick [this event]
         (func event)))))
 
 (def button-options
@@ -647,17 +658,16 @@
         nil ["A button click listener." ""]))))
 
 (option-provider Button button-options)
-
-(defn ^Button button
-  [& args ]
+(defn ^Button button
+   [& args ]
    (case (count args)
-    0 (button :caption "")
-    1 (button :caption (first args))
-    (apply-options (Button. "") args)))
+     0 (button :caption "")
+     1 (button :caption (first args))
+     (apply-options (Button. "") args)))
 
 (defn ^NativeButton native-button
   [& args ]
-   (case (count args)
+  (case (count args)
     0 (native-button :caption "")
     1 (native-button :caption (first args))
     (apply-options (NativeButton. "") args)))
@@ -666,34 +676,34 @@
 
 (defn- add-components!
   [^AbstractComponentContainer container items]
-   (doseq [item items] 
-     (cond 
-       (nil? item) nil
-       ;; make strings to labels 'on the fly'
-       (string? item) (add! container (label :value item))
-       :else (add! container item))))
+  (doseq [item items] 
+    (cond 
+      (nil? item) nil
+      ;; make strings to labels 'on the fly'
+      (string? item) (add! container (label :value item))
+      :else (add! container item))))
 
 (defn ^HorizontalLayout h-l
   [& {:keys [items spacing margin-all width height style-name] } ]
-   (let [h (HorizontalLayout.)]
-     (when width (.setWidth h width))
-     (when height (.setHeight h height))
-     (when spacing (.setSpacing h spacing))
-     (when margin-all (.setMargin h ^boolean margin-all))
-     (when style-name (.addStyleName h style-name))
-     (add-components! h items) 
-     h))
+  (let [h (HorizontalLayout.)]
+    (when width (.setWidth h width))
+    (when height (.setHeight h height))
+    (when spacing (.setSpacing h spacing))
+    (when margin-all (.setMargin h ^boolean margin-all))
+    (when style-name (.addStyleName h style-name))
+    (add-components! h items) 
+    h))
 
 (defn ^VerticalLayout v-l
   [& {:keys [items spacing margin-all width height style-name] } ]
-   (let [v (VerticalLayout.)]
-     (when width (.setWidth v width))
-     (when height (.setHeight v height))
-     (when spacing (.setSpacing v spacing))
-     (when margin-all (.setMargin v ^boolean margin-all))
-     (when style-name (.addStyleName v style-name))
-     (add-components! v items) 
-     v))
+  (let [v (VerticalLayout.)]
+    (when width (.setWidth v width))
+    (when height (.setHeight v height))
+    (when spacing (.setSpacing v spacing))
+    (when margin-all (.setMargin v ^boolean margin-all))
+    (when style-name (.addStyleName v style-name))
+    (add-components! v items) 
+    v))
 
 (defn get-component
   "Gets the component at the given index position"
@@ -704,7 +714,7 @@
   [^AbstractOrderedLayout layout component ratio]
   (.setExpandRatio layout component (float ratio))
   layout)
- 
+
 (defn set-expand-ratio-at-index!
   [^AbstractOrderedLayout layout index ratio]
   (.setExpandRatio layout (get-component layout index) (float ratio))
@@ -721,11 +731,10 @@
 (defonce ALIGNMENT_BOTTOM_RIGHT Alignment/BOTTOM_RIGHT)
 (defonce ALIGNMENT_BOTTOM_LEFT Alignment/BOTTOM_LEFT)
 (defonce ALIGNMENT_BOTTOM_CENTER Alignment/BOTTOM_CENTER)
-
-(defn align!
-  [^AbstractOrderedLayout layout component alignment]
-  (.setComponentAlignment layout component alignment)
-  layout)
+(defn align!
+   [^AbstractOrderedLayout layout component alignment]
+   (.setComponentAlignment layout component alignment)
+   layout)
 
 (defn align-at-index!
   [^AbstractOrderedLayout layout index alignment]
@@ -742,14 +751,14 @@
   [^AbstractField af func]
   (.addListener af
     (reify Property$ValueChangeListener
-	    (valueChange [this event]
+      (valueChange [this event]
         (func event)))))
 
 (defn- set-text-change-listener!
   [^TextField tf func]
   (.addListener tf
     (reify FieldEvents$TextChangeListener
-	    (textChange [this event]
+      (textChange [this event]
         (func event)))))
 
 (defwidget text-field TextField
@@ -760,65 +769,64 @@
      (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
      )])
-  
+
 (defwidget text-area TextArea
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 (defwidget password-field PasswordField
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 (defwidget rich-text-area RichTextArea
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :text-change-listener set-text-change-listener! nil ["A text change listener." ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 (defwidget check-box CheckBox
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 ;; Date and Time 
 
 (defwidget date-field DateField
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 (defwidget popup-date-field PopupDateField
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 (defwidget inline-date-field InlineDateField
   [default-options]
   [(option-map
-      (default-option :init-value set-value! nil ["initial value" ""])
-      (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
-      )])
+     (default-option :init-value set-value! nil ["initial value" ""])
+     (default-option :change-listener set-value-change-listener! nil ["A value change listener." ""])
+     )])
 
 ;; Notifications
-
-(defn alert [msg]
-  (Notification/show (convert-text-value msg)))
+(defn alert [msg]
+   (Notification/show (convert-text-value msg)))
 
 (defn show-notification
   "Generic show method."
@@ -830,24 +838,24 @@
   [caption msg]
   (show-notification caption msg
                      Notification$Type/HUMANIZED_MESSAGE))
-  
+
 (defn show-warning
   "Shows warning message."
   [caption msg]
   (show-notification caption msg
-         Notification$Type/WARNING_MESSAGE))
- 
+                     Notification$Type/WARNING_MESSAGE))
+
 (defn show-error
   "Shows error message."
   [caption msg]
-    (show-notification caption msg
-                       Notification$Type/ERROR_MESSAGE))
+  (show-notification caption msg
+                     Notification$Type/ERROR_MESSAGE))
 
 (defn show-tray
   "Shows message in system tray area."
   [caption msg]
-    (show-notification caption msg
-                       Notification$Type/TRAY_NOTIFICATION))
+  (show-notification caption msg
+                     Notification$Type/TRAY_NOTIFICATION))
 
 ; TODO implement Notification with options
 (defn create-notification
@@ -904,23 +912,23 @@
 ; Widget configuration stuff
 
 (def ^{:doc (str "Alias of clj.reindeer.config/config:\n" (:doc (meta #'clj.reindeer.config/config)))}
-      config clj.reindeer.config/config)
+config clj.reindeer.config/config)
 
 (def ^{:doc (str "Alias of clj.reindeer.config/config!:\n" (:doc (meta #'clj.reindeer.config/config!)))} 
-     config! clj.reindeer.config/config!)
+config! clj.reindeer.config/config!)
 
 (extend-protocol Configurable
- 
+  
   AbstractComponent
-    (config* [target name]  (get-option-value target name))
-    (config!* [target args] (apply-options target args))
-
- ;; Window is an AbstractComponent!
- ;;   (config* [target name]  (get-option-value target name))
- ;;   (config!* [target args] (apply-options target args))
-    
- ;; todo: more?
-)
+  (config* [target name]  (get-option-value target name))
+  (config!* [target args] (apply-options target args))
+  
+  ;; Window is an AbstractComponent!
+  ;;   (config* [target name]  (get-option-value target name))
+  ;;   (config!* [target args] (apply-options target args))
+  
+  ;; todo: more?
+  )
 
 (defn set-text!
   "Set a text value."
@@ -996,14 +1004,14 @@
 
 (extend-protocol Showable
   AbstractComponent
-    (visible! [this] (doto this (.setVisible true)))
-    (not-visible! [this] (doto this (.setVisible false)))
-    (visible? [this] (.isVisible this))
+  (visible! [this] (doto this (.setVisible true)))
+  (not-visible! [this] (doto this (.setVisible false)))
+  (visible? [this] (.isVisible this))
   
   java.util.EventObject
-    (visible! [this] (visible! (.getSource this)))
-    (not-visible! [this] (not-visible! (.getSource this)))
-    (visible? [this] (visible? (.getSource this))))
+  (visible! [this] (visible! (.getSource this)))
+  (not-visible! [this] (not-visible! (.getSource this)))
+  (visible? [this] (visible? (.getSource this))))
 
 (defn width
   "Returns the width of the given widget."
@@ -1028,10 +1036,9 @@
    ^String n]
   (.removeStyleName c n)
   c)
-
-(defn ^OptionGroup option-group
-  "Gruped radio buttons." 
-  [& {:keys [caption items ] } ]
+(defn ^OptionGroup option-group
+   "Gruped radio buttons." 
+   [& {:keys [caption items ] } ]
    (let [^OptionGroup og (OptionGroup. )]
      (when caption (.setCaption og caption))
      (doseq [item items] 
@@ -1041,12 +1048,12 @@
 (defn ^OptionGroup option-group-multi
   "Grouped check boxes with multiple selections." 
   [& {:keys [caption items ] } ]
-   (let [^OptionGroup og (OptionGroup. )]
-     (when caption (.setCaption og caption))
-     (.setMultiSelect og true) 
-     (doseq [item items] 
-       (.addItem og item))
-     og))
+  (let [^OptionGroup og (OptionGroup. )]
+    (when caption (.setCaption og caption))
+    (.setMultiSelect og true) 
+    (doseq [item items] 
+      (.addItem og item))
+    og))
 
 ;; aliases
 (def radio-buttons option-group)
@@ -1132,7 +1139,7 @@
   (.addContainerProperty container property-id type default-value))
 
 (defn container-property
-    [& {:keys [pid type default] } ]
+  [& {:keys [pid type default] } ]
   [pid type default])
 
 (defn add-container-properties 
@@ -1151,15 +1158,21 @@
     (.addItem container item-id)
     (.addItem container (Object.))))
 
+(defn remove-all-items
+  [tableOrContainer]
+  (if (instance? Container tableOrContainer)
+    (.removeAllItems ^Table tableOrContainer)
+    (.removeAllItems ^Container tableOrContainer)))
+
 (defn indexed-container
   "create an indexed container."
-   [& {:keys [item-ids properties] } ]
-   (let [container (if item-ids
-                     (IndexedContainer. item-ids)
-                     (IndexedContainer.))]
-     (when properties
-       (add-container-properties container properties))
-     container))
+  [& {:keys [item-ids properties] } ]
+  (let [container (if item-ids
+                    (IndexedContainer. item-ids)
+                    (IndexedContainer.))]
+    (when properties
+      (add-container-properties container properties))
+    container))
 
 
 ;; Binding
@@ -1169,34 +1182,34 @@
 
 ; Column Header Modes 
 (def-constants-handler column-header-modes {
-   :hidden      Table$ColumnHeaderMode/HIDDEN
-   :id          Table$ColumnHeaderMode/ID
-   :explicit    Table$ColumnHeaderMode/EXPLICIT
-   :defaults-id Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID
-   }) 
+                                            :hidden      Table$ColumnHeaderMode/HIDDEN
+                                            :id          Table$ColumnHeaderMode/ID
+                                            :explicit    Table$ColumnHeaderMode/EXPLICIT
+                                            :defaults-id Table$ColumnHeaderMode/EXPLICIT_DEFAULTS_ID
+                                            }) 
 
 (defn- set-column-header-mode!
-   "Internal use only"
+  "Internal use only"
   [^Table tbl mode]
   (.setColumnHeaderMode tbl (get-constant-from-column-header-modes mode)))
 
 (defn- get-column-header-mode
-   "Internal use only"
+  "Internal use only"
   [^Table tbl]
   (get-key-from-column-header-modes (.getColumnHeaderMode tbl)))
 
 (defn- set-item-click-listener!
-   "Internal use only"
+  "Internal use only"
   [^Table tbl func]
   (.addItemClickListener tbl (item-click-listener func)))
 
 (defn- set-selectable!
-   "Internal use only"
+  "Internal use only"
   [^Table tbl state]
   (.setSelectable tbl state))
 
 (defn- is-selectable?
-   "Internal use only"
+  "Internal use only"
   [^Table tbl]
   (.isSelectable tbl))
 
@@ -1213,17 +1226,16 @@
   (if striped?
     (.addStyleName tbl "striped")
     (.removeStyleName tbl "striped")))
-
-(def table-options
-  (merge
-    default-options
-    (option-map
-        (default-option :on-item-click set-item-click-listener! nil ["" ""])
-        (default-option :column-header-mode set-column-header-mode! get-column-header-mode ["" ""])
-        (default-option :striped? set-striped! nil ["" ""])
-        (default-option :selectable? set-selectable! is-selectable? ["" ""])
-        (default-option :container-datasource set-container-datasource! nil ["" ""])
-        (default-option :visible-columns set-visible-columns! nil ["" ""]))))
+(def table-options
+   (merge
+     default-options
+     (option-map
+       (default-option :on-item-click set-item-click-listener! nil ["" ""])
+       (default-option :column-header-mode set-column-header-mode! get-column-header-mode ["" ""])
+       (default-option :striped? set-striped! nil ["" ""])
+       (default-option :selectable? set-selectable! is-selectable? ["" ""])
+       (default-option :container-datasource set-container-datasource! nil ["" ""])
+       (default-option :visible-columns set-visible-columns! nil ["" ""]))))
 
 (option-provider Table table-options)
 
@@ -1234,4 +1246,14 @@
     1 (table :caption (first args))
     (apply-options (Table. "") args)))
 
+(defn ^Item add-table-item
+  [^Table table & item-id]
+  (if item-id
+    (.addItem table item-id)
+    (.addItem table (Object.))))
 
+(defn add-item
+  [tableOrContainer & item-id]
+  (if (instance? Container tableOrContainer)
+    (add-container-item tableOrContainer item-id)
+    (add-table-item tableOrContainer item-id)))

@@ -197,9 +197,10 @@
     (let [base-name (.substring (.getName m) 3)
           type      (first (.getParameterTypes m))
           dash-name (dash-case base-name)
-          boolean?  (= Boolean/TYPE type)]
-      { :setter (symbol  (.getName m))
-        :getter (symbol  (str (if boolean? "is" "get") base-name))
+          boolean?  (= Boolean/TYPE type)
+          getter-name (symbol (str (if boolean? "is" "get") base-name))]
+      { :setter (symbol (.getName m))
+        :getter getter-name
         :name   (keyword (if boolean?
                            (str dash-name "?")
                            dash-name))

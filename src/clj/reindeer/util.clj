@@ -143,9 +143,7 @@
 
 (extend-protocol Children
  
-  AbstractComponentContainer  (children [this] (iterator-seq (.iterator this)))
-  
-  )
+  AbstractComponentContainer  (children [this] (iterator-seq (.iterator this))))
 
 (defn collect
   "Given a root widget or panel, returns a depth-fist seq of all the widgets
