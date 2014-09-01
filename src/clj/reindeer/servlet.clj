@@ -14,8 +14,8 @@
   clj.reindeer.servlet
   (:gen-class
     :extends com.vaadin.server.VaadinServlet
-    :name
-    clj.reindeer.ReindeerServlet)
+    :name    clj.reindeer.ReindeerServlet
+    :exposes-methods {init parentInit})
   (:use [clj.reindeer.util])
   (:import [com.vaadin.shared.communication
             PushMode]
@@ -57,6 +57,18 @@
 (defn -servletInitialized
   "Called automatically by Vaadin when the servlet is ready."
   [this]
-  ; (println "ReindeerServlet: servletInitialized entered." )
+  (println "ReindeerServlet: servletInitialized entered." )
   (-> this .getService (.addSessionInitListener (create-session-init-listener))))
 
+(defn -init
+   "Called by the servlet engine when the servlet is being initialized.
+    Implementation note:
+    See https://www.deepbluelambda.org/programming/clojure/generate-your-class-and-proxy-it-too"
+  ([this ^javax.servlet.ServletConfig servletConfig]       
+    (println "ReindeerServlet: init with config entered." )   
+    (. this parentInit servletConfig)
+    ;;(->	servletConfig .getServletContext (.setInitParameter "init-x" "iiii"))
+    (println "ReindeerServlet: init with config exited." ))
+  ([this]                     
+  ;; see url above: "... you need to implement both the nullary and unary forms of init in order for your servlet to work."
+   ))

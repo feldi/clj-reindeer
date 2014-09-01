@@ -14,4 +14,5 @@
               [[javax.servlet/javax.servlet-api "3.1.0"]
                [midje "1.5.1"]]}}
   :aot [clj.reindeer.servlet
+        clj.reindeer.servlet-context-listener
         clj.reindeer.ui])
